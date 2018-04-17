@@ -9,6 +9,7 @@ import sys
 import argparse
 import logging as log
 
+import numpy as np
 import matplotlib.pyplot as plt
 from progress.bar import ShadyBar as progressbar
 
@@ -128,6 +129,11 @@ def test_scope():
 
     sys.exit(0)
 
+def moving_average(a, n=3) :
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
 
 def test_flow(comms, edec):
     """
@@ -151,7 +157,7 @@ def test_flow(comms, edec):
     pb = progressbar()
     pb.suffix = "%(percent).1f%% - %(eta)ds"
     pb.message= "Running"
-    for i in pb.iter(range(0,50)):
+    for i in pb.iter(range(0,100)):
         key = edec.GenerateKeyBits()
         msg = edec.GenerateMessage()
 
@@ -169,7 +175,10 @@ def test_flow(comms, edec):
         plt.plot(scope.GetData(scope.trigger_channel))
 
         plt.subplot(212)
-        plt.plot(scope.GetData(scope.sample_channel))
+        plot_data = scope.GetData(scope.sample_channel)
+        avf_data = moving_average(plot_data,n=20)
+        plt.plot(plot_data)
+        plt.plot(avf_data )
 
         log.info("Number of Samples: %s", scope.no_of_samples)
         plt.draw()
