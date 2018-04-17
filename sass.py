@@ -86,6 +86,22 @@ def test_target(comms, edec):
     else:
         log.info("Read back msg: " + r_message.hex())
 
+    log.info("Trying Encryption...")
+    rsp = comms.doEncrypt()
+    if(not rsp):
+        log.error("Encryption failed!")
+        errcode = 1
+    else:
+        log.info("Encryption passed!")
+
+    log.info("Trying Decryption...")
+    rsp = comms.doDecrypt()
+    if(not rsp):
+        log.error("Decryption failed!")
+        errcode = 1
+    else:
+        log.info("Decryption passed!")
+
 
     log.info("Test Finished")
     comms.ClosePort()

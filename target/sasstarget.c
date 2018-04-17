@@ -59,6 +59,32 @@ void sass_target_run(
             }
             ctx -> send_byte_to_host(SASS_STATUS_OK);
 
+        } else if(input == SASS_CMD_DO_ENCRYPT) {
+
+            // Perform an encryption, then send the OK response
+            // back to the host
+            ctx -> encrypt (
+                ctx -> message,
+                ctx -> key,
+                ctx -> cipher,
+                SASS_KEY_LENGTH,
+                SASS_MSG_LENGTH
+            );
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
+
+        } else if(input == SASS_CMD_DO_DECRYPT) {
+
+            // Perform a decryption, then send the OK response
+            // back to the host
+            ctx -> decrypt (
+                ctx -> message,
+                ctx -> key,
+                ctx -> cipher,
+                SASS_KEY_LENGTH,
+                SASS_MSG_LENGTH
+            );
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
+
         } else {
             // By default, send an error response for requests we
             // do not understand.

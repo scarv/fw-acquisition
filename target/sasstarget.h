@@ -43,11 +43,28 @@ the communications and capabilities of the target.
 typedef struct {
     
     //! Pointer to function used to send bytes to the host.
-    void (*send_byte_to_host)(char to_send);
+    void (*send_byte_to_host)(unsigned char to_send);
     
     //! Pointer to function used to recieve bytes from the host.
-    char (*recv_byte_from_host)();
+    unsigned char (*recv_byte_from_host)();
+
+    //! Pointer to function used for encryption
+    void (*encrypt)(
+        char * message,
+        char * key,
+        char * cipher,
+        unsigned int key_len,
+        unsigned int msg_len
+    );
     
+    //! Pointer to function used for decryption
+    void (*decrypt)(
+        char * message,
+        char * key,
+        char * cipher,
+        unsigned int key_len,
+        unsigned int msg_len
+    );    
     //! If set to non-zero, the target will shut down.
     char exit;
 

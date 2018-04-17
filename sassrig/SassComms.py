@@ -289,11 +289,7 @@ class SassComms:
 
         rsp = self.__GetResponse__()
 
-        if(rsp):
-            return cfg
-        else:
-            return rsp
-
+        return rsp
 
     def doDecrypt(self):
         """
