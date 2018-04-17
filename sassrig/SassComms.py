@@ -6,6 +6,7 @@ platform.
 
 import os
 import sys
+import time
 import logging as log
 
 import serial
@@ -113,11 +114,17 @@ class SassComms:
         - Return true if we get the OK response.
         - Die if we get no response at all or an unexpected response.
         """
+        assert len(new_key) == self.keylength
 
-        log.info("SASS_CMD_SET_KEY %h" % new_key)
+        log.info("SASS_CMD_SET_KEY %s" % new_key.hex())
+        
+        hp = int(self.msglength/2)
 
         self.port.write(SASS_CMD_SET_KEY)
-        self.port.write(new_key)
+        self.port.write(new_key[:hp])
+        self.port.flush()
+        time.sleep(0.1)
+        self.port.write(new_key[hp:])
         self.port.flush()
         
         return self.__GetResponse__()
@@ -136,7 +143,7 @@ class SassComms:
         self.port.flush()
 
         key = self.port.read(self.keylength)
-        rsp = __GetResponse__()
+        rsp = self.__GetResponse__()
 
         if(rsp):
             return key
@@ -151,11 +158,17 @@ class SassComms:
         - Return true if we get the OK response.
         - Die if we get no response at all or an unexpected response.
         """
+        assert len(new_msg) == self.msglength
 
-        log.info("SASS_CMD_SET_MSG %h" % new_msg)
+        log.info("SASS_CMD_SET_MSG %s" % new_msg.hex())
+
+        hp = int(self.msglength/2)
 
         self.port.write(SASS_CMD_SET_MSG)
-        self.port.write(new_msg)
+        self.port.write(new_msg[:hp])
+        self.port.flush()
+        time.sleep(0.1)
+        self.port.write(new_msg[hp:])
         self.port.flush()
         
         return self.__GetResponse__()
@@ -174,7 +187,7 @@ class SassComms:
         self.port.flush()
 
         msg = self.port.read(self.msglength)
-        rsp = __GetResponse__()
+        rsp = self.__GetResponse__()
 
         if(rsp):
             return msg
@@ -190,7 +203,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_SET_CIPHER %h" % new_cipher)
+        log.info("SASS_CMD_SET_CIPHER %s" % new_cipher.hex)
 
         self.port.write(SASS_CMD_SET_CIPHER)
         self.port.write(new_cipher)
@@ -212,7 +225,7 @@ class SassComms:
         self.port.flush()
 
         cipher = self.port.read(self.cipherlength)
-        rsp = __GetResponse__()
+        rsp = self.__GetResponse__()
 
         if(rsp):
             return cipher
@@ -228,7 +241,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_SET_CFG %h" % new_cfg)
+        log.info("SASS_CMD_SET_CFG %s" % new_cfg.hex)
 
         self.port.write(SASS_CMD_SET_CFG)
         self.port.write(field)
@@ -252,7 +265,7 @@ class SassComms:
         self.port.flush()
 
         cfg = self.port.read(self.cfglength)
-        rsp = __GetResponse__()
+        rsp = self.__GetResponse__()
 
         if(rsp):
             return cfg
@@ -274,7 +287,7 @@ class SassComms:
         self.port.write(SASS_CMD_DO_ENCRYPT)
         self.port.flush()
 
-        rsp = __GetResponse__()
+        rsp = self.__GetResponse__()
 
         if(rsp):
             return cfg
@@ -296,11 +309,11 @@ class SassComms:
         self.port.write(SASS_CMD_DO_ENCRYPT)
         self.port.flush()
 
-        rsp = __GetResponse__()
+        rsp = self.__GetResponse__()
         return rsp
 
 
-    def ClosePort():
+    def ClosePort(self):
         """
         Close the serial port connection
         """

@@ -15,7 +15,8 @@ import sassrig
 # List of possible commands we can give to the script
 #
 command_list = [
-    "test"
+    "test-target",
+    "test-scope"
 ]
 
 
@@ -37,6 +38,73 @@ def parse_args():
     return parser.parse_args()
 
 
+def test_target(comms, edec):
+    """
+    Runs a very simple set of tests to make sure the target and host are
+    communicating properly.
+    """
+    rsp = comms.doHelloWorld()
+    errcode   = 0
+    if(rsp):
+        log.info("Successfully ran HelloWorld command with target")
+    else:
+        log.error("HelloWorld command failed")
+        errcode = 1
+
+    t_message = edec.GenerateMessage()
+    t_key     = edec.GenerateKeyBits()
+
+    log.info("Set message to: " + t_message.hex())
+    rsp = comms.doSetMsg(t_message)
+    if(not rsp):
+        log.error("Failed to set the message!")
+        errcode = 1
+
+    log.info("Set key to:     " + t_key.hex())
+    rsp = comms.doSetKey(t_key)
+    if(not rsp):
+        log.error("Failed to set the key!")
+        errcode = 1
+
+    r_key     = comms.doGetKey()
+    if(r_key == False):
+        log.error("Could not read key back")
+        errcode = 1
+    elif(r_key != t_key):
+        log.error("Sent " + t_key.hex() + " got " + r_key.hex())
+        errcode = 1
+    else:
+        log.info("Read back key: " + r_key.hex())
+
+    r_message = comms.doGetMsg()
+    if(r_key == False):
+        log.error("Could not read message back")
+        errcode = 1
+    elif(r_message != t_message):
+        log.error("Sent " + t_message.hex()+ " got " + r_message.hex())
+        errcode = 1
+    else:
+        log.info("Read back msg: " + r_message.hex())
+
+
+    log.info("Test Finished")
+    comms.ClosePort()
+    sys.exit(errcode)
+
+
+def test_scope():
+    """
+    A simple test function for connecting to the picoscope.
+    """
+
+    scope = sassrig.SassScope()
+
+    log.info("Connecting to first available scope...")
+    scope.OpenScope()
+    scope.CloseScope()
+    sys.exit(0)
+
+
 def main():
     """
     Main function for the whole program
@@ -47,22 +115,17 @@ def main():
     if(args.v):
         log.basicConfig(level=log.INFO)
 
-    comms = sassrig.SassComms(
-        serialPort = args.port,
-        serialBaud = args.baud
-    )
+    if(args.command == "test-target"):
+        comms = sassrig.SassComms(
+            serialPort = args.port,
+            serialBaud = args.baud
+        )
 
-    edec = sassrig.SassEncryption()
+        edec = sassrig.SassEncryption()
 
-    if(args.command == "test"):
-        
-        rsp = comms.doHelloWorld()
-        if(rsp):
-            log.info("Successfully ran HelloWorld command with target")
-        else:
-            log.error("HelloWorld command failed")
-            sys.exit(1)
-
+        test_target(comms,edec)   
+    elif(args.command == "test-scope"):
+        test_scope()   
     else:
         log.error("Unsupported command: %s" % args.command)
         sys.exit(1)

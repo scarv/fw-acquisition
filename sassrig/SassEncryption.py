@@ -31,7 +31,7 @@ class SassEncryption:
         """
         assert type(length) is int, "Message length must be an integer"
         assert length > 0, "Message length must be greater than zero"
-        return serets.token_bytes(nbytes=length)
+        return secrets.token_bytes(nbytes=length)
 
 
     def GenerateKeyBits(self, size = 16):
@@ -43,4 +43,4 @@ class SassEncryption:
         assert size % 8 == 0, "Key length must be a multiple of 8 bits"
         assert type(size) is int, "Key length must be an integer"
         assert size > 0, "Key length must be greater than zero"
-        return serets.token_bytes(nbytes=size/8)
+        return secrets.token_bytes(nbytes=size)
