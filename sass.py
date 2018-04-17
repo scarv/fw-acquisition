@@ -101,7 +101,11 @@ def test_scope():
 
     log.info("Connecting to first available scope...")
     scope.OpenScope()
+    
+    scope.ConfigureScope()
+
     scope.CloseScope()
+
     sys.exit(0)
 
 
