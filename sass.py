@@ -155,7 +155,7 @@ def test_flow(comms, edec):
     plt.show()
 
     pb = progressbar()
-    pb.suffix = "%(percent).1f%% - %(eta)ds"
+    pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
     pb.message= "Running"
     for i in pb.iter(range(0,100)):
         key = edec.GenerateKeyBits()
@@ -176,9 +176,10 @@ def test_flow(comms, edec):
 
         plt.subplot(212)
         plot_data = scope.GetData(scope.sample_channel)
-        avf_data = moving_average(plot_data,n=20)
+        avf_data = moving_average(plot_data,n=60)
         plt.plot(plot_data)
         plt.plot(avf_data )
+        plt.ylim(-0.005,0.02)
 
         log.info("Number of Samples: %s", scope.no_of_samples)
         plt.draw()

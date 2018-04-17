@@ -35,7 +35,7 @@ class SassScope:
         self.sample_range       = 1 # "20 mV"
         self.sample_coupling    = "DC"
         self.sample_interval    = 1.0/400e6 # seconds
-        self.sample_duration    = self.sample_interval *  3000
+        self.sample_duration    = self.sample_interval *  30000
         self.samples_per_segment= None
         
     def OpenScope(self):
