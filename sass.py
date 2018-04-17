@@ -9,6 +9,9 @@ import sys
 import argparse
 import logging as log
 
+import matplotlib.pyplot as plt
+from progress.bar import ShadyBar as progressbar
+
 import sassrig
 
 #
@@ -16,7 +19,8 @@ import sassrig
 #
 command_list = [
     "test-target",
-    "test-scope"
+    "test-scope",
+    "test-flow"
 ]
 
 
@@ -125,6 +129,61 @@ def test_scope():
     sys.exit(0)
 
 
+def test_flow(comms, edec):
+    """
+    Tests the control loop between the scope, host and target in order
+    to capture a single trace.
+    """
+
+    log.info("Testing SASS-RIG Control loop")
+
+    scope = sassrig.SassScope()
+
+    log.info("Connecting to first available scope...")
+
+    scope.OpenScope()
+    scope.ConfigureScope()
+    
+    plt.figure(1)
+    plt.ion()
+    plt.show()
+
+    pb = progressbar()
+    pb.suffix = "%(percent).1f%% - %(eta)ds"
+    pb.message= "Running"
+    for i in pb.iter(range(0,50)):
+        key = edec.GenerateKeyBits()
+        msg = edec.GenerateMessage()
+
+        log.info("Setting encryption parameters...")
+        comms.doSetKey(key)
+        comms.doSetMsg(msg)
+        
+        scope.StartCapture()
+        comms.doEncrypt()
+
+        scope.WaitForReady()
+        
+        plt.clf()
+        plt.subplot(211)
+        plt.plot(scope.GetData(scope.trigger_channel))
+
+        plt.subplot(212)
+        plt.plot(scope.GetData(scope.sample_channel))
+
+        log.info("Number of Samples: %s", scope.no_of_samples)
+        plt.draw()
+        plt.pause(0.001)
+
+    plt.ioff()
+    plt.show()
+
+    scope.CloseScope()
+    comms.ClosePort()
+
+    sys.exit(0)
+
+
 def main():
     """
     Main function for the whole program
@@ -133,9 +192,14 @@ def main():
     args = parse_args()
 
     if(args.v):
+        
         log.basicConfig(level=log.INFO)
 
+
+
+
     if(args.command == "test-target"):
+        
         comms = sassrig.SassComms(
             serialPort = args.port,
             serialBaud = args.baud
@@ -144,8 +208,21 @@ def main():
         edec = sassrig.SassEncryption()
 
         test_target(comms,edec)   
+    if(args.command == "test-flow"):
+        
+        comms = sassrig.SassComms(
+            serialPort = args.port,
+            serialBaud = args.baud
+        )
+
+        edec = sassrig.SassEncryption()
+
+        test_flow(comms,edec)   
+
     elif(args.command == "test-scope"):
+        
         test_scope()   
+
     else:
         log.error("Unsupported command: %s" % args.command)
         sys.exit(1)

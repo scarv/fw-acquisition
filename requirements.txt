@@ -1,3 +1,6 @@
-progress
+python3-tk
+matplotlib
+numpy
 picoscope
+progress
 pyserial
