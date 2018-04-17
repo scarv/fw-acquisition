@@ -7,6 +7,7 @@ This is the front end script used to interract with the SASS-RIG.
 import os
 import sys
 import argparse
+import logging as log
 
 import sassrig
 
@@ -24,6 +25,8 @@ def parse_args():
     """
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("-v", action="store_true", 
+        help="Turn on verbose logging.")
     parser.add_argument("--port", type=str, default="", 
         help="Which serial port used to communicate with the target.")
     parser.add_argument("--baud", type=int, default=19200, 
@@ -40,6 +43,9 @@ def main():
     """
 
     args = parse_args()
+
+    if(args.v):
+        log.basicConfig(level=log.INFO)
 
     comms = sassrig.SassComms(
         serialPort = args.port,

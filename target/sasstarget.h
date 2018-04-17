@@ -10,24 +10,30 @@
 //
 // Command codes for communicating with the target
 //
-static const unsigned char SASS_CMD_HELLOWORLD = 0x01
-static const unsigned char SASS_CMD_SET_KEY    = 0x02
-static const unsigned char SASS_CMD_GET_KEY    = 0x03
-static const unsigned char SASS_CMD_SET_MSG    = 0x04
-static const unsigned char SASS_CMD_GET_MSG    = 0x05
-static const unsigned char SASS_CMD_SET_CIPHER = 0x06
-static const unsigned char SASS_CMD_GET_CIPHER = 0x07
-static const unsigned char SASS_CMD_SET_CFG    = 0x08
-static const unsigned char SASS_CMD_GET_CFG    = 0x09
-static const unsigned char SASS_CMD_DO_ENCRYPT = 0x0A
-static const unsigned char SASS_CMD_DO_DECRYPT = 0x0B
+static const unsigned char SASS_CMD_HELLOWORLD = 0x01;
+static const unsigned char SASS_CMD_SET_KEY    = 0x02;
+static const unsigned char SASS_CMD_GET_KEY    = 0x03;
+static const unsigned char SASS_CMD_SET_MSG    = 0x04;
+static const unsigned char SASS_CMD_GET_MSG    = 0x05;
+static const unsigned char SASS_CMD_SET_CIPHER = 0x06;
+static const unsigned char SASS_CMD_GET_CIPHER = 0x07;
+static const unsigned char SASS_CMD_SET_CFG    = 0x08;
+static const unsigned char SASS_CMD_GET_CFG    = 0x09;
+static const unsigned char SASS_CMD_DO_ENCRYPT = 0x0A;
+static const unsigned char SASS_CMD_DO_DECRYPT = 0x0B;
 
 //
 // Status codes for checking if commands all worked.
 //
-static const unsigned char SASS_STATUS_OK      = 0xA0
-static const unsigned char SASS_STATUS_ERR     = 0xFA
+static const unsigned char SASS_STATUS_OK      = 0xA0;
+static const unsigned char SASS_STATUS_ERR     = 0xFA;
 
+
+//
+// Key and message lengths
+//
+#define SASS_KEY_LENGTH 16 
+#define SASS_MSG_LENGTH 16 
 
 
 /*!
@@ -43,7 +49,16 @@ typedef struct {
     char (*recv_byte_from_host)();
     
     //! If set to non-zero, the target will shut down.
-    char exit = 0;
+    char exit;
+
+    //! The current message value.
+    char    message [SASS_MSG_LENGTH];
+
+    //! The current cipher text value.
+    char    cipher  [SASS_MSG_LENGTH];
+
+    //! The current key value
+    char    key     [SASS_KEY_LENGTH];
 
 } sass_ctx;
 

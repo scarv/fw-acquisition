@@ -85,7 +85,8 @@ class SassComms:
             log.info("SASS_STATUS_ERR")
             return False
         else:
-            log.error("Unknown response code: %h" % response)
+            log.error("Unknown response code:")
+            log.error(response)
             sys.exit(1)
 
 

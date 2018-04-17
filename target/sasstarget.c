@@ -4,7 +4,7 @@
 @details Implements the functionality needed to communicate with the host.
 */
 
-
+#include "sasstarget.h"
 
 
 /*!
@@ -19,18 +19,50 @@ void sass_target_run(
 
         char input = ctx -> recv_byte_from_host();
 
-        switch(input) {
+        int i;
 
-            case(SASS_CMD_HELLOWORLD):
-                // Test command, send the OK response only.
-                ctx -> send_byte_to_host(SASS_STATUS_OK);
-                break;
+        if(input == SASS_CMD_HELLOWORLD){
+            // Test command, send the OK response only.
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
 
-            default:
-                // By default, send an error response for requests we
-                // do not understand.
-                ctx -> send_byte_to_host(SASS_STATUS_ERR);
-                break;
+
+        } else if(input == SASS_CMD_SET_KEY){
+            // Read the next SASS_KEY_LENGTH bytes, set the key
+            // and return OK
+            for(i=0; i < SASS_KEY_LENGTH; i ++) {
+                ctx -> key[i] = ctx -> recv_byte_from_host();
+            }
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
+
+        } else if(input == SASS_CMD_GET_KEY){
+            // Write all bytes of the key to the host followed by
+            // the OK byte.
+            for(i=0; i < SASS_KEY_LENGTH; i ++) {
+                ctx -> send_byte_to_host(ctx -> key[i]);
+            }
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
+
+
+        } else if(input == SASS_CMD_SET_MSG){
+            // Read the next SASS_MSG_LENGTH bytes, set the message
+            // and return OK
+            for(i=0; i < SASS_MSG_LENGTH; i ++) {
+                ctx -> message[i] = ctx -> recv_byte_from_host();
+            }
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
+
+        } else if(input == SASS_CMD_GET_MSG){
+            // Write all bytes of the message to the host followed by
+            // the OK byte.
+            for(i=0; i < SASS_MSG_LENGTH; i ++) {
+                ctx -> send_byte_to_host(ctx -> message[i]);
+            }
+            ctx -> send_byte_to_host(SASS_STATUS_OK);
+
+        } else {
+            // By default, send an error response for requests we
+            // do not understand.
+            ctx -> send_byte_to_host(SASS_STATUS_ERR);
 
         }
 
