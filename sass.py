@@ -177,7 +177,7 @@ def test_flow(comms, edec):
 
         plt.subplot(212)
         plot_data = scope.GetData(scope.sample_channel)
-        avf_data = moving_average(plot_data,n=60)
+        avf_data = moving_average(plot_data,n=50)
         plt.plot(plot_data)
         plt.plot(avf_data )
         plt.ylim(-0.005,0.02)
