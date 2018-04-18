@@ -63,16 +63,15 @@ class SassStorage:
 
         with open(filepath,"w") as fh:
 
-            tw = "Key,Message,Data\n"
+            fh.write("Key,Message,Data\n")
 
             pb = progressbar()
             pb.suffix = "%(percent).1f%% %(index)d/%(max)d - %(eta)ds - %(elapsed)ds"
             pb.message= "Write CSV"
 
             for t in pb.iter(self.traces):
-                tw += str(t)+"\n"
+                fh.write(str(t)+"\n")
 
-            fh.write(tw)
 
     def DumpTRS(self,filepath):
         """

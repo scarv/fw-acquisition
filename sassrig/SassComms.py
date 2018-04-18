@@ -167,7 +167,7 @@ class SassComms:
         self.port.write(SASS_CMD_SET_MSG)
         self.port.write(new_msg[:hp])
         self.port.flush()
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.port.write(new_msg[hp:])
         self.port.flush()
         

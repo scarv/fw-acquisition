@@ -32,7 +32,7 @@ class SassScope:
         self.no_of_samples      = None
 
         self.sample_channel     = "A"
-        self.sample_range       = 1 # "20 mV"
+        self.sample_range       = 10e-3
         self.sample_coupling    = "DC"
         self.sample_frequency   = 125e6
         self.sample_count       = 12500
