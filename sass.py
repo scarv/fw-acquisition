@@ -164,7 +164,7 @@ def test_flow(comms, edec):
     pb = progressbar()
     pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
     pb.message= "Running"
-    for i in pb.iter(range(0,100)):
+    for i in pb.iter(range(0,10)):
 
         log.info("Setting encryption parameters...")
         comms.doSetKey(key)
@@ -220,9 +220,8 @@ def flow(args):
     scope   = sassrig.SassScope()
     scope.OpenScope()
 
-    scope.sample_interval = config.getfloat("SAMPLE_INTERVAL",1/400e6)
-    sample_count          = config.getint("SAMPLE_COUNT",34000)
-    scope.sample_duration = scope.sample_interval * float(sample_count)
+    scope.sample_count    = config.getfloat("SAMPLE_COUNT",12500)
+    scope.sample_frequency= config.getfloat("SAMPLE_FREQUENCY",125e6)
 
     scope.ConfigureScope()
 

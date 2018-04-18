@@ -34,8 +34,8 @@ class SassScope:
         self.sample_channel     = "A"
         self.sample_range       = 1 # "20 mV"
         self.sample_coupling    = "DC"
-        self.sample_interval    = 1.0/400e6 # seconds
-        self.sample_duration    = self.sample_interval *  34000
+        self.sample_frequency   = 125e6
+        self.sample_count       = 12500
         self.samples_per_segment= None
         
     def OpenScope(self):
@@ -87,12 +87,13 @@ class SassScope:
         """
         log.info("Configuring Scope...")
         
-        log.info(" - Sample Interval    %s " % self.sample_interval)
+        log.info(" - Sample Count       %s " % self.sample_count)
+        log.info(" - Sample Frequency   %s S/s" % self.sample_frequency)
 
         self.scope.setResolution('14')
-        self.scope.setSamplingInterval(
-            self.sample_interval,
-            self.sample_duration
+        self.scope.setSamplingFrequency(
+            self.sample_frequency,
+            self.sample_count
         )
 
         log.info(" - Sample Channel:    %s" % self.sample_channel)
