@@ -97,7 +97,7 @@ class SassScope:
         )
 
         log.info(" - Sample Channel:    %s" % self.sample_channel)
-        log.info(" - Sample Range:      +/-%d V" % self.sample_range)
+        log.info(" - Sample Range:      +/-%f V" % self.sample_range)
 
         self.scope.setChannel(
             channel     = self.sample_channel,

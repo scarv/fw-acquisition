@@ -222,7 +222,7 @@ def flow(args):
 
     scope.sample_count    = config.getfloat("SAMPLE_COUNT",12500)
     scope.sample_frequency= config.getfloat("SAMPLE_FREQUENCY",125e6)
-    scope.sample_range    = config.get("SAMPLE_RANGE",20e-3)
+    scope.sample_range    = config.getfloat("SAMPLE_RANGE",20e-3)
 
     scope.ConfigureScope()
 
