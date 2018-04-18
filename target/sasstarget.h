@@ -21,6 +21,7 @@ static const unsigned char SASS_CMD_SET_CFG    = 0x08;
 static const unsigned char SASS_CMD_GET_CFG    = 0x09;
 static const unsigned char SASS_CMD_DO_ENCRYPT = 0x0A;
 static const unsigned char SASS_CMD_DO_DECRYPT = 0x0B;
+static const unsigned char SASS_CMD_DO_CUSTOM  = 0x0C;
 
 //
 // Status codes for checking if commands all worked.
@@ -65,6 +66,10 @@ typedef struct {
         unsigned int key_len,
         unsigned int msg_len
     );    
+    
+    //! Pointer to function which implements the "custom" command.
+    unsigned char (*custom)();    
+
     //! If set to non-zero, the target will shut down.
     char exit;
 

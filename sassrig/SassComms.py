@@ -25,6 +25,7 @@ SASS_CMD_SET_CFG    = b"\x08"
 SASS_CMD_GET_CFG    = b"\x09"
 SASS_CMD_DO_ENCRYPT = b"\x0A"
 SASS_CMD_DO_DECRYPT = b"\x0B"
+SASS_CMD_DO_CUSTOM  = b"\x0C"
 
 #
 # Status codes for checking if commands all worked.
@@ -303,6 +304,19 @@ class SassComms:
         log.info("SASS_CMD_DO_DECRYPT")
 
         self.port.write(SASS_CMD_DO_ENCRYPT)
+        self.port.flush()
+
+        rsp = self.__GetResponse__()
+        return rsp
+
+    def doCustom(self):
+        """
+        Run whatever the custom command on the target is.
+        """
+
+        log.info("SASS_CMD_DO_CUSTOM")
+
+        self.port.write(SASS_CMD_DO_CUSTOM)
         self.port.flush()
 
         rsp = self.__GetResponse__()

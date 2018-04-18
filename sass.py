@@ -23,7 +23,8 @@ command_list = [
     "test-target",
     "test-scope",
     "test-flow",
-    "flow"
+    "flow",
+    "custom"
 ]
 
 
@@ -286,6 +287,21 @@ def flow(args):
 
     return 0
 
+
+def custom(args):
+    """
+    Run the custom command on the target.
+    """
+    comms = sassrig.SassComms(
+        serialPort = args.port,
+        serialBaud = args.baud
+    )
+
+    comms.doHelloWorld()
+    comms.doCustom()
+    comms.ClosePort() 
+
+
 def main():
     """
     Main function for the whole program
@@ -301,6 +317,9 @@ def main():
 
     if(args.command == "flow"):
         flow(args)
+    
+    elif(args.command == "custom"):
+        custom(args)
 
     elif(args.command == "test-target"):
         

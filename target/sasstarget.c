@@ -85,6 +85,12 @@ void sass_target_run(
             );
             ctx -> send_byte_to_host(SASS_STATUS_OK);
 
+        } else if(input == SASS_CMD_DO_CUSTOM) {
+
+            // Run the custom command and return the result.
+            char tr = ctx -> custom();
+            ctx -> send_byte_to_host(tr);
+
         } else {
             // By default, send an error response for requests we
             // do not understand.
