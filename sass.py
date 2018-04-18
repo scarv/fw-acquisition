@@ -242,7 +242,7 @@ def flow(args):
     log.info("Starting trace capture...")
 
     pb = progressbar()
-    pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
+    pb.suffix = "%(percent).1f%% %(index)ds/%(max)ds - %(eta)ds - %(elapsed)ds"
     pb.message= "Running"
     
     if(show_traces):

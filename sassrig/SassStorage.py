@@ -9,6 +9,8 @@ import struct
 import numpy as np
 import logging as log
 
+from progress.bar import ShadyBar as progressbar
+
 from .SassTrace import *
 
 class SassStorage:
@@ -63,7 +65,11 @@ class SassStorage:
 
             tw = "Key,Message,Data\n"
 
-            for t in self.traces:
+            pb = progressbar()
+            pb.suffix = "%(percent).1f%% %(index)d/%(max)d - %(eta)ds - %(elapsed)ds"
+            pb.message= "Write CSV"
+
+            for t in pb.iter(self.traces):
                 tw += str(t)+"\n"
 
             fh.write(tw)
@@ -91,9 +97,13 @@ class SassStorage:
             fh.write(b"\x14")
 
             fh.write(b"\x5f") # Trace block marker.
+            
+            pb = progressbar()
+            pb.suffix = "%(percent).1f%% %(index)d/%(max)d - %(eta)ds - %(elapsed)ds"
+            pb.message= "Write TRS"
 
             # Write out all the trace data.
-            for t in self.traces:
+            for t in pb.iter(self.traces):
                 buf = struct.pack("%sf" % len(t.data), *t.data)
                 fh.write(buf)
 
