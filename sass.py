@@ -153,13 +153,14 @@ def test_flow(comms, edec):
     plt.figure(1)
     plt.ion()
     plt.show()
+    
+    key = edec.GenerateKeyBits()
+    msg = edec.GenerateMessage()
 
     pb = progressbar()
     pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
     pb.message= "Running"
     for i in pb.iter(range(0,100)):
-        key = edec.GenerateKeyBits()
-        msg = edec.GenerateMessage()
 
         log.info("Setting encryption parameters...")
         comms.doSetKey(key)
