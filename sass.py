@@ -7,6 +7,7 @@ This is the front end script used to interract with the SASS-RIG.
 import os
 import sys
 import argparse
+import configparser
 import logging as log
 
 import numpy as np
@@ -21,7 +22,8 @@ import sassrig
 command_list = [
     "test-target",
     "test-scope",
-    "test-flow"
+    "test-flow",
+    "flow"
 ]
 
 
@@ -37,6 +39,8 @@ def parse_args():
         help="Which serial port used to communicate with the target.")
     parser.add_argument("--baud", type=int, default=19200, 
         help="Baud rate to communicate with the target at.")
+    parser.add_argument("--flow-cfg", type=str, default="flow-config.cfg", 
+        help="Configuration file for the flow.")
     parser.add_argument("command", type=str, default="test", 
         choices=command_list, help="What to do?")
 
@@ -195,6 +199,93 @@ def test_flow(comms, edec):
     sys.exit(0)
 
 
+def flow(args):
+    """
+    Main flow function.
+    """
+
+    configfile = configparser.ConfigParser()
+    if(args.flow_cfg):
+        log.info("Loading configuration: " + args.flow_cfg)
+        configfile.read(args.flow_cfg)
+    
+    config  = configfile["SASSRIG"]
+        
+    edec    = sassrig.SassEncryption()
+    comms   = sassrig.SassComms(
+        serialBaud = config.getint("TARGET_PORT_BAUD",19200),
+        serialPort = config.get("TARGET_PORT_NAME","/dev/ttyUSB2")
+    )
+
+    scope   = sassrig.SassScope()
+    scope.OpenScope()
+
+    scope.sample_interval = config.getfloat("SAMPLE_INTERVAL",1/400e6)
+    sample_count          = config.getint("SAMPLE_COUNT",34000)
+    scope.sample_duration = scope.sample_interval * float(sample_count)
+
+    scope.ConfigureScope()
+
+    trace_count           = config.getint("TRACE_COUNT", 10)
+    show_traces           = config.getboolean("SHOW_TRACES",False)
+
+    key = edec.GenerateKeyBits()
+    if(config.get("KEY","random") != "random"):
+        key = config.get("KEY")
+
+    dump_csv              = config.getboolean("DUMP_CSV",False)
+    dump_csv_file         = config.get("DUMP_CSV_FILE")
+    dump_trs              = config.getboolean("DUMP_TRS",False)
+    dump_trs_file         = config.get("DUMP_TRS_FILE")
+
+    store                 = sassrig.SassStorage()
+    
+    log.info("Starting trace capture...")
+
+    pb = progressbar()
+    pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
+    pb.message= "Running"
+    
+    if(show_traces):
+        plt.figure(1)
+        plt.ion()
+        plt.show()
+    
+    comms.doSetKey(key)
+
+    for i in pb.iter(range(0,trace_count)):
+
+        msg = edec.GenerateMessage()
+        comms.doSetMsg(msg)
+        
+        scope.StartCapture()
+        comms.doEncrypt()
+
+        scope.WaitForReady()
+
+        plot_data = scope.GetData(scope.sample_channel)
+
+        trace = sassrig.SassTrace(plot_data, key = key, message=msg)
+        store.AddTrace(trace)
+
+        if(show_traces):
+            plt.clf()
+            plt.plot(plot_data)
+            plt.ylim(-0.005,0.02)
+            plt.draw()
+            plt.pause(0.001)
+    
+    plt.ioff()
+    plt.close()
+
+    if(dump_csv):
+        store.DumpCSV(dump_csv_file)
+
+    if(dump_trs):
+        store.DumpTRS(dump_trs_file)
+
+    return 0
+
 def main():
     """
     Main function for the whole program
@@ -208,8 +299,10 @@ def main():
 
 
 
+    if(args.command == "flow"):
+        flow(args)
 
-    if(args.command == "test-target"):
+    elif(args.command == "test-target"):
         
         comms = sassrig.SassComms(
             serialPort = args.port,
@@ -219,7 +312,7 @@ def main():
         edec = sassrig.SassEncryption()
 
         test_target(comms,edec)   
-    if(args.command == "test-flow"):
+    elif(args.command == "test-flow"):
         
         comms = sassrig.SassComms(
             serialPort = args.port,

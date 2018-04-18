@@ -38,6 +38,6 @@ class SassTrace:
 
     def __str__(self):
         tr = "%s,%s" % (self.key, self.message)
-        for i in data:
+        for i in self.data:
             tr += ",%s" % i
         return tr

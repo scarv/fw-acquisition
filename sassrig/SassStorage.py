@@ -54,13 +54,14 @@ class SassStorage:
 
         with open(filepath,"w") as fh:
 
-            fh.write("Key,Message,Data\n")
+            tw = "Key,Message,Data\n"
 
             for t in self.traces:
+                tw += str(t)+"\n"
 
-                fh.write(str(t))
+            fh.write(tw)
 
-    def DumpTRS(self,filepath)
+    def DumpTRS(self,filepath):
         """
         Write out the collection of traces to the supplied filepath,
         overwriting any existing file of the same name.
