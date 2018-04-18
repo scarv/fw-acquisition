@@ -233,9 +233,9 @@ def flow(args):
         key = config.get("KEY")
 
     dump_csv              = config.getboolean("DUMP_CSV",False)
-    dump_csv_file         = config.get("DUMP_CSV_FILE")
+    dump_csv_file         = config.get("DUMP_CSV_FILE").replace("[key]",key.hex())
     dump_trs              = config.getboolean("DUMP_TRS",False)
-    dump_trs_file         = config.get("DUMP_TRS_FILE")
+    dump_trs_file         = config.get("DUMP_TRS_FILE").replace("[key]",key.hex())
 
     store                 = sassrig.SassStorage()
     
