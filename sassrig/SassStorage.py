@@ -27,6 +27,7 @@ class SassStorage:
 
         self.traces    = []
         self.trace_len = None
+        self.plaintext_len = 16 # bytes
 
     def __len__(self):
         return len(self.traces)
@@ -95,6 +96,9 @@ class SassStorage:
             fh.write(b"\x43") # Sample coding type (float, 4 bytes)
             fh.write(b"\x14")
 
+            fh.write(b"\x44") # Length of data associated with each trace
+            fh.write(self.plaintext_len.to_bytes(2,byteorder="little"))
+
             fh.write(b"\x5f") # Trace block marker.
             
             pb = progressbar()
@@ -103,6 +107,11 @@ class SassStorage:
 
             # Write out all the trace data.
             for t in pb.iter(self.traces):
+                # Write the message associated with the trace
+                buf = struct.pack("%sf" % self.plaintext_len, *t.message)
+                fh.write(buf)
+
+                # Write the trace data.
                 buf = struct.pack("%sf" % len(t.data), *t.data)
                 fh.write(buf)
 

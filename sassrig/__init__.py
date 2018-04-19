@@ -8,3 +8,4 @@ from .SassEncryption import *
 from .SassScope      import *
 from .SassStorage    import *
 from .SassTrace      import *
+from .SassAttack     import *

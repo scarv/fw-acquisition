@@ -24,7 +24,8 @@ command_list = [
     "test-scope",
     "test-flow",
     "flow",
-    "custom"
+    "custom",
+    "attack"
 ]
 
 
@@ -42,6 +43,8 @@ def parse_args():
         help="Baud rate to communicate with the target at.")
     parser.add_argument("--flow-cfg", type=str, default="flow-config.cfg", 
         help="Configuration file for the flow.")
+    parser.add_argument("--trace-file", type=str,
+        help="The trace file used with the 'attack' command.")
     parser.add_argument("command", type=str, default="test", 
         choices=command_list, help="What to do?")
 
@@ -153,6 +156,7 @@ def test_flow(comms, edec):
     log.info("Connecting to first available scope...")
 
     scope.OpenScope()
+    scope.sample_range = 20e-3
     scope.ConfigureScope()
     
     plt.figure(1)
@@ -165,7 +169,7 @@ def test_flow(comms, edec):
     pb = progressbar()
     pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
     pb.message= "Running"
-    for i in pb.iter(range(0,10)):
+    for i in pb.iter(range(0,50)):
 
         log.info("Setting encryption parameters...")
         comms.doSetKey(key)
@@ -254,6 +258,8 @@ def flow(args):
     
     comms.doSetKey(key)
 
+    dropped_traces = 0
+
     for i in pb.iter(range(0,trace_count)):
 
         msg = edec.GenerateMessage()
@@ -265,9 +271,14 @@ def flow(args):
         scope.WaitForReady()
 
         plot_data = scope.GetData(scope.sample_channel)
-
-        trace = sassrig.SassTrace(plot_data, key = key, message=msg)
-        store.AddTrace(trace)
+        if(plot_data[0] == None):
+            if(args.v):
+                print()
+                dropped_traces += 1
+                log.warn("Dropped trace %d due to scope overflow." % i)
+        else:
+            trace = sassrig.SassTrace(plot_data, key = key, message=msg)
+            store.AddTrace(trace)
 
         if(show_traces):
             plt.clf()
@@ -278,6 +289,11 @@ def flow(args):
     
     plt.ioff()
     plt.close()
+
+    if(dropped_traces > 0):
+        log.warn("Dropped %d traces due to scope measurement overflows." %
+            dropped_traces)
+    log.info("Valid Traces Captured: %d" % (trace_count - dropped_traces))
 
     if(dump_csv):
         store.DumpCSV(dump_csv_file)
@@ -310,8 +326,9 @@ def main():
     args = parse_args()
 
     if(args.v):
-        
         log.basicConfig(level=log.INFO)
+    else:
+        log.basicConfig(level=log.WARN)
 
 
 
@@ -345,6 +362,11 @@ def main():
     elif(args.command == "test-scope"):
         
         test_scope()   
+    
+    elif(args.command == "attack"):
+        
+        attack = sassrig.SassAttack(args)
+        attack.run()
 
     else:
         log.error("Unsupported command: %s" % args.command)

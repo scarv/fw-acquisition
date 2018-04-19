@@ -32,7 +32,7 @@ class SassScope:
         self.no_of_samples      = None
 
         self.sample_channel     = "A"
-        self.sample_range       = 10e-3
+        self.sample_range       = 20e-3
         self.sample_coupling    = "DC"
         self.sample_frequency   = 125e6
         self.sample_count       = 12500
@@ -74,9 +74,9 @@ class SassScope:
 
             return tr
         except Exception as e:
-            log.error("Channel %s" % channel)
-            log.error(str(e))
-            return [0]
+            #log.error("Channel %s" % channel)
+            #log.error(str(e))
+            return [None,e]
 
 
     
