@@ -12,6 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from progress.bar import ShadyBar as progressbar
 
+from .SassStorage import SassStorage
+
 class SassAttack:
     """
     Class containing everything we need to run an attack.
@@ -30,3 +32,7 @@ class SassAttack:
         Run the full attack
         """
         log.info("Running attack on trace file: %s" % self.tracefile)
+
+        self.storage = SassStorage(self.tracefile)
+        
+        log.info("Loaded %d traces..." % len(self.storage))

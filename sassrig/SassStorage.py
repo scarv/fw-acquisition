@@ -11,7 +11,10 @@ import logging as log
 
 from progress.bar import ShadyBar as progressbar
 
-from .SassTrace import *
+from .SassTrace     import *
+from .SassStorage   import *
+
+SAMPLE_ENCODING_F4 = b"\x14"
 
 class SassStorage:
     """
@@ -28,6 +31,18 @@ class SassStorage:
         self.traces    = []
         self.trace_len = None
         self.plaintext_len = 16 # bytes
+
+
+    def __init__(self, trs_file):
+        """
+        Load back a trs file from disk as a set of traces.
+        """
+
+        self.traces    = []
+        self.trace_len = None
+        self.plaintext_len = 16 # bytes
+        self.LoadTRS(trs_file)
+
 
     def __len__(self):
         return len(self.traces)
@@ -94,7 +109,7 @@ class SassStorage:
             fh.write(len_traces.to_bytes(4,byteorder="little"))
 
             fh.write(b"\x43") # Sample coding type (float, 4 bytes)
-            fh.write(b"\x14")
+            fh.write(SAMPLE_ENCODING_F4)
 
             fh.write(b"\x44") # Length of data associated with each trace
             fh.write(self.plaintext_len.to_bytes(2,byteorder="little"))
@@ -114,4 +129,73 @@ class SassStorage:
                 # Write the trace data.
                 buf = struct.pack("%sf" % len(t.data), *t.data)
                 fh.write(buf)
+
+
+    def LoadTRS(self, filepath):
+        """
+        Load a trs file from disk.
+        """
+
+        with open(filepath, "rb") as fh:
+
+            ctrlcode            = fh.read(1)
+            numtraces           = None
+            samples_per_trace   = None
+            data_per_trace      = None
+            coding_type         = None
+
+            while(ctrlcode != b"\x5f"):
+
+                log.info("Control code: %s" % ctrlcode.hex())
+                
+                if(ctrlcode == b"\x41"):
+                    # Number of traces
+                    num_traces = int.from_bytes(fh.read(4),"little")
+                    log.info("Number of traces: %d" % num_traces)
+                    
+                elif(ctrlcode == b"\x42"):
+                    # Samples per trace
+                    samples_per_trace = int.from_bytes(fh.read(4),"little")
+                    log.info("Samples per trace: %d" % samples_per_trace)
+
+                elif(ctrlcode == b"\x43"):
+                    # Sample coding type (float, 4 bytes each)
+                    coding_type = fh.read(1)
+
+                    if(coding_type != SAMPLE_ENCODING_F4):
+                        log.error("Unsupported sample encoding: %s" % coding_type)
+                        return
+                    else:
+                        log.info("Coding Type: float-4byte.")
+
+                elif(ctrlcode == b"\x44"):
+                    # Length of data (msg/cipher text) associated with a trace
+                    data_per_trace = int.from_bytes(fh.read(2),"little")
+                    log.info("Data bytes per trace: %d" % data_per_trace)
+
+                else:
+                    log.error("Unknown byte marker: %s"%ctrlcode)
+                    return
+
+                ctrlcode = fh.read(1)
+
+            # We have finished reading the header, now we just read the
+            # rest of the data and traces.
+
+            pb = progressbar()
+            pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
+            pb.message= "Loading Traces "
+
+            for i in pb.iter(range(0, num_traces)):
+                
+                message = fh.read(data_per_trace)
+                trace_pk= fh.read(samples_per_trace * 4)
+
+                trace   = struct.unpack(
+                    "%sf" % samples_per_trace, 
+                    trace_pk
+                )
+
+                toadd = SassTrace(trace, message = message)
+                self.AddTrace(toadd)
 
