@@ -5,6 +5,7 @@ This file contains tools for archiving sets of traces.
 
 import os
 import sys
+import array
 import struct
 import numpy as np
 import logging as log
@@ -23,17 +24,7 @@ class SassStorage:
     """
 
 
-    def __init__(self):
-        """
-        Create a new storage class for dumping traces into.
-        """
-
-        self.traces    = []
-        self.trace_len = None
-        self.plaintext_len = 16 # bytes
-
-
-    def __init__(self, trs_file):
+    def __init__(self, trs_file = None):
         """
         Load back a trs file from disk as a set of traces.
         """
@@ -41,7 +32,9 @@ class SassStorage:
         self.traces    = []
         self.trace_len = None
         self.plaintext_len = 16 # bytes
-        self.LoadTRS(trs_file)
+        
+        if(trs_file != None):
+            self.LoadTRS(trs_file)
 
 
     def __len__(self):
@@ -123,12 +116,10 @@ class SassStorage:
             # Write out all the trace data.
             for t in pb.iter(self.traces):
                 # Write the message associated with the trace
-                buf = struct.pack("%sf" % self.plaintext_len, *t.message)
-                fh.write(buf)
+                fh.write(t.message)
 
                 # Write the trace data.
-                buf = struct.pack("%sf" % len(t.data), *t.data)
-                fh.write(buf)
+                t.data.tofile(fh)
 
 
     def LoadTRS(self, filepath):
@@ -146,7 +137,7 @@ class SassStorage:
 
             while(ctrlcode != b"\x5f"):
 
-                log.info("Control code: %s" % ctrlcode.hex())
+                log.debug("Control code: %s" % ctrlcode.hex())
                 
                 if(ctrlcode == b"\x41"):
                     # Number of traces
@@ -156,6 +147,7 @@ class SassStorage:
                 elif(ctrlcode == b"\x42"):
                     # Samples per trace
                     samples_per_trace = int.from_bytes(fh.read(4),"little")
+                    self.trace_len = samples_per_trace
                     log.info("Samples per trace: %d" % samples_per_trace)
 
                 elif(ctrlcode == b"\x43"):
@@ -188,14 +180,10 @@ class SassStorage:
 
             for i in pb.iter(range(0, num_traces)):
                 
-                message = fh.read(data_per_trace)
-                trace_pk= fh.read(samples_per_trace * 4)
+                message   = fh.read(data_per_trace)
+                tracedata = array.array("f")
+                tracedata.fromfile(fh, samples_per_trace)
 
-                trace   = struct.unpack(
-                    "%sf" % samples_per_trace, 
-                    trace_pk
-                )
-
-                toadd = SassTrace(trace, message = message)
+                toadd = SassTrace(tracedata, message = message)
                 self.AddTrace(toadd)
 

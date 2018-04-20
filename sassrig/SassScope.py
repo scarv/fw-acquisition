@@ -6,6 +6,7 @@ measurement scope.
 
 import os
 import sys
+import array
 import logging as log
 import numpy as np
 
@@ -69,7 +70,8 @@ class SassScope:
         log.info("Fetching Scope Data...")
         
         try:
-            tr = self.scope.getDataV(channel, exceptOverflow=True)
+            tr = self.scope.getDataV(channel, exceptOverflow=False)
+            tr = array.array("f", tr)
             self.no_of_samples = self.scope.noSamples
 
             return tr

@@ -280,7 +280,7 @@ def flow(args):
             trace = sassrig.SassTrace(plot_data, key = key, message=msg)
             store.AddTrace(trace)
 
-        if(show_traces):
+        if(show_traces and plot_data[0] != None):
             plt.clf()
             plt.plot(plot_data)
             plt.ylim(-0.005,scope.sample_range)
