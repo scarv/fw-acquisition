@@ -33,10 +33,10 @@ class SassScope:
         self.no_of_samples      = None
 
         self.sample_channel     = "A"
-        self.sample_range       = 20e-3
+        self.sample_range       = 10e-3
         self.sample_coupling    = "DC"
         self.sample_frequency   = 125e6
-        self.sample_count       = 12500
+        self.sample_count       = 11000
         self.samples_per_segment= None
         
     def OpenScope(self):

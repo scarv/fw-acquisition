@@ -67,6 +67,10 @@ def parse_args():
         help="Ignore all samples upto this sample for each trace.")
     attack.add_argument("--isolate-to", type=int,default=-1,
         help="Ignore all samples beyond this sample for each trace.")
+    attack.add_argument("--bin-traces", action="store_true",
+        help="Combine all traces which share the same data byte values.")
+    attack.add_argument("--average-correlations", action="store_true",
+        help="")
     
     
     custom = subs.add_parser("custom",
@@ -184,7 +188,7 @@ def test_flow(comms, edec):
     log.info("Connecting to first available scope...")
 
     scope.OpenScope()
-    scope.sample_range = 20e-3
+    scope.sample_range = 10e-3
     scope.ConfigureScope()
     
     plt.figure(1)
@@ -212,9 +216,9 @@ def test_flow(comms, edec):
         plt.subplot(212)
         plot_data = scope.GetData(scope.sample_channel)
         avf_data = moving_average(plot_data,n=50)
-        plt.plot(plot_data)
-        plt.plot(avf_data )
-        plt.ylim(-0.005,0.02)
+        plt.plot(plot_data, linewidth=0.25)
+        plt.plot(avf_data, linewidth=0.25)
+        plt.ylim(-0.005,scope.sample_range)
 
         log.info("Number of Samples: %s", scope.no_of_samples)
         plt.draw()
