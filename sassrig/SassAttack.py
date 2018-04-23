@@ -41,6 +41,20 @@ sbox = [
   0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f,
   0xb0, 0x54, 0xbb, 0x16]
 
+class KeyEstimate:
+    """
+    Class containing information on a key byte guess
+    """
+
+    def __init__(self, byte, value):
+        self.byte = byte
+        self.value = value
+        self.confidence = None
+
+    def __str__(self):
+        return "%d %s %f" % (self.byte,hex(self.value),self.confidence)
+
+
 class SassAttack:
     """
     Class containing everything we need to run an attack.
@@ -211,7 +225,9 @@ class SassAttack:
 
         if(self.args.show_correlations):
             plt.figure(1)
-            plt.clf()
+            plt.tight_layout()
+            plt.subplot(4,4,keybyte+1)
+            plt.ylim([-0.1,0.1])
             plt.plot(R,linewidth = 0.25)
             plt.draw()
             plt.pause(0.001)
@@ -219,7 +235,8 @@ class SassAttack:
         candidateidx = np.unravel_index(np.argmax(R, axis=None), R.shape)
         log.debug("byte guess: %s" % hex(candidateidx[0]))
 
-        return candidateidx[0]
+        tr = KeyEstimate(keybyte,candidateidx[0])
+        return tr
 
 
     def run(self):
@@ -234,20 +251,20 @@ class SassAttack:
         
         log.info("Loaded %d traces..." % len(self.storage))
         
-        keybytes = [-1] * 15
+        keybytes = [-1] * 16
        
         if(self.args.show_correlations):
             plt.ion()
             plt.show()
 
-        pb = tqdm(range(0,15))
+        pb = tqdm(range(0,16))
         pb.set_description("Guessing Key Bytes")
         for i in pb:
-            keybytes[i] = hex(self.getCandidateForKeyByte(i,16))
+            keybytes[i] = self.getCandidateForKeyByte(i,16)
 
         if(self.args.show_correlations):
             plt.ioff()
 
-        print("Final key guess: %s" % keybytes)
+        print("Final key guess: %s" % [hex(k.value) for k in keybytes])
 
 
