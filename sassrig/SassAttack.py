@@ -31,7 +31,8 @@ class SassAttack:
         self.isolate_start = args.isolate_from
         self.isolate_end   = args.isolate_to
         self.tracefile     = args.trace_file
-
+        
+        self.power_lut     = self.precompute_power_estimates()
 
     def isolateData(self):
         """
@@ -55,40 +56,41 @@ class SassAttack:
         return databyte ^ keybyte
 
 
-    def estimatedPower(value):
+    def estimatedPower(keybyte, databyte, intermediate):
         """
         Use a hamming weight model
         """
-        tr = 0
+        tr = 0.0
         for i in range(0,8):
-            tr += (value >> i) & 0x1
+            tr += (intermediate >> i) & 0x1
         return float(tr)
 
 
-    def computeIntermediateValues(self, d , keybyte):
+    def precompute_power_estimates(self):
         """
-        Returns the D by K matrix of intermediate values, where D is the
-        possible data value, and K is the number of possible choices for K.
+        Return a 256x256 array of estimates of power comsumption for a given
+        key byte an data byte.
+        The array is indexed as ARRAY[key][data]
         """
-        K = range(0,256)
-        D = range(0,len(d))
-        V = np.array(
-            [[self.intermediateValue(d[i][keybyte],K[k]) for k in K] for i in D]
+        
+        keys = range(0,256)
+        data = range(0,256)
+
+        return np.array(
+            [[SassAttack.estimatedPower(k,d,self.intermediateValue(d,k))
+                for d in data] for k in keys]
         )
 
-        return V
 
-
-    def computeEstimatedPowerValues(self, ivals):
+    def computeEstimatedPowerValues(self, d, keybyte):
         """
         Given the D by K matrix of intermediate values, model the power
         required to compute each one.
         """
-        Dd,Kk   = ivals.shape
-        D       = range(0, Dd)
-        K       = range(0, Kk)
+        D       = range(0, len(d))
+        K       = range(0, 256)
         hvals = np.array(
-            [[SassAttack.estimatedPower(ivals[d][k]) for k in K] for d in D]
+            [[self.power_lut[k][d[i][keybyte]] for k in K] for i in D]
         )
 
         return hvals
@@ -110,10 +112,38 @@ class SassAttack:
 
         # Finally get corr coeff
         rvals = np.dot(A_mA,B_mB.T)/np.sqrt(np.dot(ssA[:,None],ssB[None]))
-
         return rvals
 
 
+    def binTraces(self, message_byte):
+        """
+        From T trace/message pairs, bin into 256 message/trace pairs by
+        averaging traces with the same message byte values.
+        """
+
+        d    = range(0,256)
+        bins = {}
+        averages = {}
+        
+        pb = tqdm(self.storage.traces)
+        pb.set_description("Binning traces")
+
+        for t in pb:
+            databyte = t.message[message_byte]
+            if(not databyte in bins.keys()):
+                bins[databyte] = set([])
+
+            bins[databyte].add(t)
+
+        pb = tqdm(bins)
+        pb.set_description("Averaging traces over bins")
+
+        for i in pb:
+            averages[i] = np.array([t.data for t in bins[i]])
+            averages[i] = np.mean(averages[i],axis=0)
+        
+        return np.array([averages[i] for i in bins])
+        
     def getCandidateForKeyByte(self, keybyte, keylen):
         """
         Responsible for running an attack on a single key byte, where
@@ -124,6 +154,7 @@ class SassAttack:
         D  = len(self.storage)           # Number of encryptions (traces)
         Tb = self.storage.trace_len      # Length of each trace
 
+
         d = np.array([t.message for t in self.storage.traces])
         assert(len(d) == D)
         log.debug("Shape of d: %s" % str(d.shape))
@@ -132,11 +163,8 @@ class SassAttack:
         assert(T.shape == (D,Tb))
         log.debug("Shape of T: %s" % str(T.shape))
 
-        V  = self.computeIntermediateValues(d, keybyte)
-        assert(V.shape == (D,len(K)))
-        log.debug("Shape of V: %s" % str(V.shape))
         
-        H = self.computeEstimatedPowerValues(V)
+        H = self.computeEstimatedPowerValues(d, keybyte)
         assert(H.shape == (D,len(K)))
         log.debug("Shape of H: %s" % str(H.shape))
 
@@ -145,7 +173,8 @@ class SassAttack:
 
         if(self.args.show_correlations):
             plt.figure(1)
-            plt.plot(R,linewidth = 0.05)
+            plt.clf()
+            plt.plot(R,linewidth = 0.25)
             plt.draw()
             plt.pause(0.001)
         
