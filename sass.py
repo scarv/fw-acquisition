@@ -37,16 +37,36 @@ def parse_args():
 
     parser.add_argument("-v", action="store_true", 
         help="Turn on verbose logging.")
-    parser.add_argument("--port", type=str, default="", 
+
+    subs = parser.add_subparsers(dest="command")
+
+    capture = subs.add_parser("capture",help="Capture traces from a test rig")
+    capture.add_argument("flow_cfg", 
+        help="File containing configuration options for the capture process",
+        type=str)
+
+    test = subs.add_parser("test", 
+        help="Test the connection to the target test rig")
+    test.add_argument("component", type=str, 
+        help="Which part of the flow should be tested?",
+        choices=["target","scope","flow"])
+    test.add_argument("port", type=str, 
         help="Which serial port used to communicate with the target.")
-    parser.add_argument("--baud", type=int, default=19200, 
+    test.add_argument("baud", type=int,
         help="Baud rate to communicate with the target at.")
-    parser.add_argument("--flow-cfg", type=str, default="flow-config.cfg", 
-        help="Configuration file for the flow.")
-    parser.add_argument("--trace-file", type=str,
-        help="The trace file used with the 'attack' command.")
-    parser.add_argument("command", type=str, default="test", 
-        choices=command_list, help="What to do?")
+
+    attack = subs.add_parser("attack",
+        help="Try to recover the key from a set of captured traces")
+    attack.add_argument("trace-file", type=str,
+        help="The trace file to attack.")
+    
+    
+    custom = subs.add_parser("custom",
+        help="Run whatever the custom command is on the target")
+    custom.add_argument("--port", type=str, 
+        help="Which serial port used to communicate with the target.")
+    custom.add_argument("--baud", type=int, default=19200, 
+        help="Baud rate to communicate with the target at.")
 
     return parser.parse_args()
 
@@ -328,37 +348,40 @@ def main():
 
 
 
-    if(args.command == "flow"):
+    if(args.command == "test"):
+    
+        if(args.component == "scope"):
+        
+            test_scope()   
+
+        elif(args.component == "target"):
+            comms = sassrig.SassComms(
+                serialPort = args.port,
+                serialBaud = args.baud
+            )
+
+            edec = sassrig.SassEncryption()
+
+            test_target(comms,edec)   
+
+        elif(args.component == "flow"):
+            
+            comms = sassrig.SassComms(
+                serialPort = args.port,
+                serialBaud = args.baud
+            )
+
+            edec = sassrig.SassEncryption()
+
+            test_flow(comms,edec)   
+            
+
+    elif(args.command == "capture"):
         flow(args)
     
     elif(args.command == "custom"):
         custom(args)
 
-    elif(args.command == "test-target"):
-        
-        comms = sassrig.SassComms(
-            serialPort = args.port,
-            serialBaud = args.baud
-        )
-
-        edec = sassrig.SassEncryption()
-
-        test_target(comms,edec)   
-    elif(args.command == "test-flow"):
-        
-        comms = sassrig.SassComms(
-            serialPort = args.port,
-            serialBaud = args.baud
-        )
-
-        edec = sassrig.SassEncryption()
-
-        test_flow(comms,edec)   
-
-    elif(args.command == "test-scope"):
-        
-        test_scope()   
-    
     elif(args.command == "attack"):
         
         attack = sassrig.SassAttack(args)
