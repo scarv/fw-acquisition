@@ -175,7 +175,7 @@ class SassStorage:
             pb = tqdm(range(0,num_traces))
             pb.set_description("Loading Traces")
 
-            for i in pb.iter(range(0, num_traces)):
+            for i in pb:
                 
                 message   = fh.read(data_per_trace)
                 tracedata = array.array("f")

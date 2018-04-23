@@ -57,7 +57,7 @@ def parse_args():
 
     attack = subs.add_parser("attack",
         help="Try to recover the key from a set of captured traces")
-    attack.add_argument("trace-file", type=str,
+    attack.add_argument("trace_file", type=str,
         help="The trace file to attack.")
     
     
