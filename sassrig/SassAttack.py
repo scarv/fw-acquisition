@@ -70,7 +70,7 @@ class SassAttack:
         Returns the D by K matrix of intermediate values, where D is the
         possible data value, and K is the number of possible choices for K.
         """
-        K = range(0,255)
+        K = range(0,256)
         D = range(0,len(d))
         V = np.array(
             [[self.intermediateValue(d[i][keybyte],K[k]) for k in K] for i in D]
@@ -84,9 +84,12 @@ class SassAttack:
         Given the D by K matrix of intermediate values, model the power
         required to compute each one.
         """
-        D,K   = ivals.shape
-        ep    = np.vectorize(SassAttack.estimatedPower, otypes=[np.float])
-        hvals = ep(ivals)
+        Dd,Kk   = ivals.shape
+        D       = range(0, Dd)
+        K       = range(0, Kk)
+        hvals = np.array(
+            [[SassAttack.estimatedPower(ivals[d][k]) for k in K] for d in D]
+        )
 
         return hvals
 
@@ -116,7 +119,7 @@ class SassAttack:
         Responsible for running an attack on a single key byte, where
         0 <= keybyte <=keylen 
         """
-        K = range(0,255)
+        K = range(0,256)
         
         D  = len(self.storage)           # Number of encryptions (traces)
         Tb = self.storage.trace_len      # Length of each trace
@@ -170,7 +173,7 @@ class SassAttack:
             plt.ion()
             plt.show()
 
-        pb = tqdm(range(0,16))
+        pb = tqdm(range(0,15))
         pb.set_description("Guessing Key Bytes")
         for i in pb:
             keybytes[i] = hex(self.getCandidateForKeyByte(i,16))

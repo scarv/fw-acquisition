@@ -37,6 +37,8 @@ def parse_args():
 
     parser.add_argument("-v", action="store_true", 
         help="Turn on verbose logging.")
+    parser.add_argument("-V", action="store_true", 
+        help="Turn on very verbose logging.")
 
     subs = parser.add_subparsers(dest="command")
 
@@ -347,8 +349,11 @@ def main():
 
     args = parse_args()
 
-    if(args.v):
-        log.basicConfig(level=log.INFO)
+    if(args.v or args.V):
+        if(args.V):
+            log.basicConfig(level=log.DEBUG)
+        else:
+            log.basicConfig(level=log.INFO)
     else:
         log.basicConfig(level=log.WARN)
 
