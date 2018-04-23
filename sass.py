@@ -12,7 +12,7 @@ import logging as log
 
 import numpy as np
 import matplotlib.pyplot as plt
-from progress.bar import ShadyBar as progressbar
+from tqdm import tqdm
 
 import sassrig
 
@@ -166,10 +166,7 @@ def test_flow(comms, edec):
     key = edec.GenerateKeyBits()
     msg = edec.GenerateMessage()
 
-    pb = progressbar()
-    pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
-    pb.message= "Running"
-    for i in pb.iter(range(0,50)):
+    for i in tqdm(range(0,50)):
 
         log.info("Setting encryption parameters...")
         comms.doSetKey(key)
@@ -246,10 +243,6 @@ def flow(args):
     store                 = sassrig.SassStorage()
     
     log.info("Starting trace capture...")
-
-    pb = progressbar()
-    pb.suffix = "%(percent).1f%% %(index)ds/%(max)ds - %(eta)ds - %(elapsed)ds"
-    pb.message= "Running"
     
     if(show_traces):
         plt.figure(1)
@@ -260,7 +253,10 @@ def flow(args):
 
     dropped_traces = 0
 
-    for i in pb.iter(range(0,trace_count)):
+    pb = tqdm(range(0,trace_count))
+    pb.set_description("Capturing traces")
+
+    for i in pb:
 
         msg = edec.GenerateMessage()
         comms.doSetMsg(msg)

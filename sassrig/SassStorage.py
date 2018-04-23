@@ -10,7 +10,7 @@ import struct
 import numpy as np
 import logging as log
 
-from progress.bar import ShadyBar as progressbar
+from tqdm import tqdm
 
 from .SassTrace     import *
 from .SassStorage   import *
@@ -74,11 +74,10 @@ class SassStorage:
 
             fh.write("Key,Message,Data\n")
 
-            pb = progressbar()
-            pb.suffix = "%(percent).1f%% %(index)d/%(max)d - %(eta)ds - %(elapsed)ds"
-            pb.message= "Write CSV"
+            pb = tqdm(self.traces)
+            pb.set_description("Write CSV")
 
-            for t in pb.iter(self.traces):
+            for t in pb:
                 fh.write(str(t)+"\n")
 
 
@@ -109,12 +108,11 @@ class SassStorage:
 
             fh.write(b"\x5f") # Trace block marker.
             
-            pb = progressbar()
-            pb.suffix = "%(percent).1f%% %(index)d/%(max)d - %(eta)ds - %(elapsed)ds"
-            pb.message= "Write TRS"
+            pb = tqdm(self.traces)
+            pb.set_description("Write TRS")
 
             # Write out all the trace data.
-            for t in pb.iter(self.traces):
+            for t in pb:
                 # Write the message associated with the trace
                 fh.write(t.message)
 
@@ -174,9 +172,8 @@ class SassStorage:
             # We have finished reading the header, now we just read the
             # rest of the data and traces.
 
-            pb = progressbar()
-            pb.suffix = "%(percent).1f%% - %(eta)ds - %(elapsed)ds"
-            pb.message= "Loading Traces "
+            pb = tqdm(range(0,num_traces))
+            pb.set_description("Loading Traces")
 
             for i in pb.iter(range(0, num_traces)):
                 

@@ -12,7 +12,7 @@ from multiprocessing import Pool
 
 import numpy as np
 import matplotlib.pyplot as plt
-from progress.bar import ShadyBar as progressbar
+from tqdm import tqdm
 
 from .SassTrace   import SassTrace   
 from .SassStorage import SassStorage
@@ -41,135 +41,114 @@ class SassAttack:
         to begin with.
         """
         
-        pb = progressbar("Isolating traces...")
-        for trace in pb.iter(self.storage.traces):
+        pb = tqdm(self.storage.traces)
+        pb.set_description("Isolating Traces")
+        for trace in pb:
             trace.data = trace.data[self.isolate_start:self.isolate_end]
             self.storage.trace_len = len(trace.data)
 
 
-    def getTracePartition(self, trace, candidate, bytei):
+    def intermediateValue(self, databyte, keybyte):
         """
-        Returns which partition set the supplied trace should be put into.
-        For a given candidate byte, and the bytei'th byte of the data 
-        associated with the supplied trace, work out the partition the
-        trace belongs too.
+        XOR the two together.
         """
-
-        assert(type(trace)      == SassTrace)
-        assert(type(candidate)  == int)
-        assert(candidate >= 0 and candidate <= 255)
-        assert(type(bytei)      == int)
-        assert(bytei < len(trace.message))
+        return databyte ^ keybyte
 
 
-        message_byte = trace.message[bytei]
+    def estimatedPower(value):
+        """
+        Use a hamming weight model
+        """
+        tr = 0
+        for i in range(0,8):
+            tr += (value >> i) & 0x1
+        return float(tr)
 
-        candidate_xor_msgbyte = message_byte ^ candidate
+
+    def computeIntermediateValues(self, d , keybyte):
+        """
+        Returns the D by K matrix of intermediate values, where D is the
+        possible data value, and K is the number of possible choices for K.
+        """
+        K = range(0,255)
+        D = range(0,len(d))
+        V = np.array(
+            [[self.intermediateValue(d[i][keybyte],K[k]) for k in K] for i in D]
+        )
+
+        return V
+
+
+    def computeEstimatedPowerValues(self, ivals):
+        """
+        Given the D by K matrix of intermediate values, model the power
+        required to compute each one.
+        """
+        D,K   = ivals.shape
+        ep    = np.vectorize(SassAttack.estimatedPower, otypes=[np.float])
+        hvals = ep(ivals)
+
+        return hvals
+
+
+    def computeCorrelation(self, hvals, tvals):
+        """
+        Compute the correlation coefficients for our key guesses.
+        """
+        A = hvals
+        B = tvals
+
+        A_mA = A - A.mean(1)[:,None]
+        B_mB = B - B.mean(1)[:,None]
+
+        # Sum of squares across rows
+        ssA = (A_mA**2).sum(1);
+        ssB = (B_mB**2).sum(1);
+
+        # Finally get corr coeff
+        rvals = np.dot(A_mA,B_mB.T)/np.sqrt(np.dot(ssA[:,None],ssB[None]))
+
+        return rvals
+
+
+    def getCandidateForKeyByte(self, keybyte, keylen):
+        """
+        Responsible for running an attack on a single key byte, where
+        0 <= keybyte <=keylen 
+        """
+        K = range(0,255)
         
-        # Partition based on least significant bit of candidate XOR data byte
-        partition = candidate_xor_msgbyte & (0x1)
+        D  = len(self.storage)           # Number of encryptions (traces)
+        Tb = self.storage.trace_len      # Length of each trace
 
-        return partition
-
-
-    def createSetAverage(self, traceset):
-        """
-        Return a numpy array which represents the pointwise average of all
-        traces in the supplied set.
-        """
+        d = np.array([t.message for t in self.storage.traces])
+        assert(len(d) == D)
+        log.debug("Shape of d: %s" % str(d.shape))
         
-        data = np.array([t.data for t in traceset])
+        T  = np.array([t.data for t in self.storage.traces])
+        assert(T.shape == (D,Tb))
+        log.debug("Shape of T: %s" % str(T.shape))
 
-        toreturn = np.average(data,axis=0)
-
-        assert(len(toreturn) == self.storage.trace_len)
-
-        return toreturn
-
-
-
-    def createPartitionSets(self, candidate, bytei):
-        """
-        For a particular candidate and byte index, compute the two partitioned
-        trace sets, and the average traces of those two sets, returning
-        them as a tuple.
-        """
+        V  = self.computeIntermediateValues(d, keybyte)
+        assert(V.shape == (D,len(K)))
+        log.debug("Shape of V: %s" % str(V.shape))
         
-        # Split all of the traces into two sets based on the
-        # partition function
-        for trace in self.storage.traces:
-            partition = self.getTracePartition(trace,candidate, bytei)
+        H = self.computeEstimatedPowerValues(V)
+        assert(H.shape == (D,len(K)))
+        log.debug("Shape of H: %s" % str(H.shape))
 
-            if(partition):
-                self.partition_sets_1[candidate].append(trace)
-            else:
-                self.partition_sets_0[candidate].append(trace)
+        R = self.computeCorrelation(np.transpose(H),np.transpose(T))
+        log.debug("Shape of R: %s" % str(R.shape))
 
-
-
-    def plotCandidateSets(self,candidate):
-        """
-        Plot the average and difference sets for a candidate
-        """
-
-        plt.figure(2)
-
-        plt.subplot(311)
-        plt.plot(self.average_set_0[candidate], linewidth=0.1)
-
-        plt.subplot(312)
-        plt.plot(self.average_set_1[candidate], linewidth=0.1)
-        
-        plt.subplot(313)
-        plt.plot(self.difference_sets[candidate], linewidth=0.1)
-
-        plt.suptitle("Candidate = %s" % hex(candidate))
-
-        plt.show()
+        plt.figure(1)
+        plt.plot(R,linewidth = 0.05)
         plt.draw()
         plt.pause(0.001)
-
         
+        candidateidx = np.unravel_index(np.argmax(R, axis=None), R.shape)
+        log.debug("byte guess: %s" % hex(candidateidx[0]))
 
-    def getCandidateForKeyByte(self, keybyte):
-        best_candidate_value = -1
-        best_candidate_corr  = 0.0
-        candidates = range(0,255)
-
-        log.info("Partitioning Traces...")
-        
-        for c in progressbar("Partitioning...").iter(candidates):
-
-            self.partition_sets_0[c] = []
-            self.partition_sets_1[c] = []
-
-            self.createPartitionSets(c, keybyte)
-        
-        log.info("Averaging Traces...")
-        
-        for c in progressbar("Averaging...   ").iter(candidates):
-            set0 = self.partition_sets_0[c]
-            set1 = self.partition_sets_1[c]
-            avg0 = self.createSetAverage(set0)
-            avg1 = self.createSetAverage(set1)
-            self.average_set_0[c]   = avg0
-            self.average_set_1[c]   = avg1
-            self.difference_sets[c] = avg0 - avg1
-
-        log.info("Searching for best candidate...")
-
-        for c in progressbar("Finding best candidate...").iter(candidates):
-
-            val = np.max(self.difference_sets[c]) - np.min(self.difference_sets[c])
-
-            if(val > best_candidate_corr):
-                best_candidate_corr  = val
-                best_candidate_value = c
-
-                log.info("Best candidate for byte %d is %s" % 
-                    (keybyte, hex(best_candidate_value)))
-        return best_candidate_value
-
+        return candidateidx[0]
 
 
     def run(self):
@@ -185,23 +164,17 @@ class SassAttack:
         log.info("Loaded %d traces..." % len(self.storage))
         
         keybytes = [-1] * 15
-
+       
         plt.ion()
-        for i in range(0, 1):
+        plt.show()
 
-            self.partition_sets_0 = {}
-            self.partition_sets_1 = {}
+        pb = tqdm(range(0,15))
+        pb.set_description("Guessing Key Bytes")
+        for i in pb:
+            keybytes[i] = hex(self.getCandidateForKeyByte(i,16))
 
-            self.average_set_0    = {}
-            self.average_set_1    = {}
-
-            self.difference_sets  = {}
-
-            keybytes[i] = self.getCandidateForKeyByte(i)
-            self.plotCandidateSets(keybytes[i])
+        plt.ioff()
 
         log.info("Final key guess: %s" % keybytes)
-        plt.ioff()
-        plt.show()
 
 
