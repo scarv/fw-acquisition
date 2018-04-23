@@ -59,6 +59,12 @@ def parse_args():
         help="Try to recover the key from a set of captured traces")
     attack.add_argument("trace_file", type=str,
         help="The trace file to attack.")
+    attack.add_argument("--show-correlations", action="store_true",
+        help="During the attack, show graphs of key guesses v.s correlation.")
+    attack.add_argument("--isolate-from", type=int, default=0,
+        help="Ignore all samples upto this sample for each trace.")
+    attack.add_argument("--isolate-to", type=int,default=-1,
+        help="Ignore all samples beyond this sample for each trace.")
     
     
     custom = subs.add_parser("custom",

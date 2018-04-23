@@ -28,8 +28,8 @@ class SassAttack:
         Create a new attack class.
         """
         self.args          = args
-        self.isolate_start = 0
-        self.isolate_end   = 11000
+        self.isolate_start = args.isolate_from
+        self.isolate_end   = args.isolate_to
         self.tracefile     = args.trace_file
 
 
@@ -140,10 +140,11 @@ class SassAttack:
         R = self.computeCorrelation(np.transpose(H),np.transpose(T))
         log.debug("Shape of R: %s" % str(R.shape))
 
-        plt.figure(1)
-        plt.plot(R,linewidth = 0.05)
-        plt.draw()
-        plt.pause(0.001)
+        if(self.args.show_correlations):
+            plt.figure(1)
+            plt.plot(R,linewidth = 0.05)
+            plt.draw()
+            plt.pause(0.001)
         
         candidateidx = np.unravel_index(np.argmax(R, axis=None), R.shape)
         log.debug("byte guess: %s" % hex(candidateidx[0]))
@@ -165,16 +166,18 @@ class SassAttack:
         
         keybytes = [-1] * 15
        
-        plt.ion()
-        plt.show()
+        if(self.args.show_correlations):
+            plt.ion()
+            plt.show()
 
-        pb = tqdm(range(0,15))
+        pb = tqdm(range(0,16))
         pb.set_description("Guessing Key Bytes")
         for i in pb:
             keybytes[i] = hex(self.getCandidateForKeyByte(i,16))
 
-        plt.ioff()
+        if(self.args.show_correlations):
+            plt.ioff()
 
-        log.info("Final key guess: %s" % keybytes)
+        print("Final key guess: %s" % keybytes)
 
 
