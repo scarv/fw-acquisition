@@ -46,6 +46,13 @@ An example is the [flow-config.cfg](flow-config.cfg) file.
 - The `test` target can be used to check that you can properly connect to
 the target device, scope and can run the flow correctly.
 
+## Test Rig Setup
+
+The diagram below shows the components of the test rig used to develop this
+flow.
+
+![Rig Diagram](docs/rig.png)
+
 ## Organisation
 
 The rig is split into two components:
