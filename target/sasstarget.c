@@ -44,7 +44,7 @@ void sass_target_run(
                 ctx -> send_byte_to_host(ctx -> config_fields[field]);
                 ctx -> send_byte_to_host(SASS_STATUS_OK);
             } else {
-                ctx -> send_byte_to_host(0);
+                ctx -> send_byte_to_host(0xff);
                 ctx -> send_byte_to_host(SASS_STATUS_ERR);
             }
 

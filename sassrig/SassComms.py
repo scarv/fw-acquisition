@@ -242,10 +242,12 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_SET_CFG %s" % new_cfg.hex)
+        log.info("SASS_CMD_SET_CFG %s %s" % (field,value))
 
         self.port.write(SASS_CMD_SET_CFG)
         self.port.write(field)
+        self.port.flush()
+        time.sleep(0.01)
         self.port.write(value)
         self.port.flush()
         
