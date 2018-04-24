@@ -266,5 +266,6 @@ class SassAttack:
             plt.ioff()
 
         print("Final key guess: %s" % [hex(k.value) for k in keybytes])
+        input("[Return] to exit")
 
 

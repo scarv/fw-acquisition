@@ -138,6 +138,13 @@ def test_target(comms, edec):
         errcode = 1
     else:
         log.info("Encryption passed!")
+    
+    r_ciphertext = comms.doGetCipher()
+    if(r_key == False):
+        log.error("Could not read ciphertext back")
+        errcode = 1
+    else:
+        log.info("Read back ciphertext: " + r_ciphertext.hex())
 
     log.info("Trying Decryption...")
     rsp = comms.doDecrypt()
@@ -146,6 +153,16 @@ def test_target(comms, edec):
         errcode = 1
     else:
         log.info("Decryption passed!")
+    
+    r_message = comms.doGetMsg()
+    if(r_key == False):
+        log.error("Could not read message back")
+        errcode = 1
+    elif(r_message != t_message):
+        log.error("Sent " + t_message.hex()+ " got " + r_message.hex())
+        errcode = 1
+    else:
+        log.info("Read back msg: " + r_message.hex())
 
 
     log.info("Test Finished")

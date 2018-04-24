@@ -225,7 +225,7 @@ class SassComms:
         self.port.write(SASS_CMD_GET_CIPHER)
         self.port.flush()
 
-        cipher = self.port.read(self.cipherlength)
+        cipher = self.port.read(self.msglength)
         rsp = self.__GetResponse__()
 
         if(rsp):
