@@ -68,15 +68,28 @@ def main():
         elif(cmd == "helloworld"):
             value = comms.doHelloWorld()
             print(value)
-        elif(cmd == "get_cfg"):
-            field = bytes([int(lexed[1])])
-            value = comms.doGetCfg(field)
-            print(value)
-        elif(cmd == "set_cfg"):
-            field = bytes([int(lexed[1])])
-            value = bytes([int(lexed[2])])
-            value = comms.doSetCfg(field, value)
-            print(value)
+        elif(cmd == "get"):
+            subcmd = lexed[1]
+            if(subcmd == "cfg"):
+                field = bytes([int(lexed[2])])
+                value = comms.doGetCfg(field)
+                print(value)
+            elif(subcmd == "message"):
+                value = comms.doGetMsg()
+                print(value)
+            elif(subcmd == "key"):
+                value = comms.doGetKey()
+                print(value)
+            elif(subcmd == "cipher"):
+                value = comms.doGetCipher()
+                print(value)
+        elif(cmd == "set"):
+            subcmd = lexed[1]
+            if(subcmd == "cfg"):
+                field = bytes([int(lexed[2])])
+                value = bytes([int(lexed[3])])
+                value = comms.doSetCfg(field, value)
+                print(value)
 
     comms.ClosePort()
     sys.exit(0)
