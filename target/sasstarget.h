@@ -35,6 +35,7 @@ static const unsigned char SASS_STATUS_ERR     = 0xFA;
 //
 #define SASS_KEY_LENGTH 16 
 #define SASS_MSG_LENGTH 16 
+#define SASS_CFG_FIELDS 16
 
 
 /*!
@@ -66,6 +67,9 @@ typedef struct {
         unsigned int key_len,
         unsigned int msg_len
     );    
+    
+    //! A bunch of get/setable switches.
+    char    config_fields [SASS_CFG_FIELDS];
     
     //! Pointer to function which implements the "custom" command.
     unsigned char (*custom)();    

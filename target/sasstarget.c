@@ -26,6 +26,29 @@ void sass_target_run(
             ctx -> send_byte_to_host(SASS_STATUS_OK);
 
 
+        } else if(input == SASS_CMD_SET_CFG){
+            // Set the config field to the supplied value.
+            char field = ctx -> recv_byte_from_host();
+            char value = ctx -> recv_byte_from_host();
+            if(field < SASS_CFG_FIELDS) {
+                ctx -> config_fields[field] = value;
+                ctx -> send_byte_to_host(SASS_STATUS_OK);
+            } else {
+                ctx -> send_byte_to_host(SASS_STATUS_ERR);
+            }
+
+        } else if(input == SASS_CMD_GET_CFG){
+            // Read the supplied config field and send it back.
+            char field = ctx -> recv_byte_from_host();
+            if(field < SASS_CFG_FIELDS) {
+                ctx -> send_byte_to_host(ctx -> config_fields[field]);
+                ctx -> send_byte_to_host(SASS_STATUS_OK);
+            } else {
+                ctx -> send_byte_to_host(0);
+                ctx -> send_byte_to_host(SASS_STATUS_ERR);
+            }
+
+
         } else if(input == SASS_CMD_SET_KEY){
             // Read the next SASS_KEY_LENGTH bytes, set the key
             // and return OK
