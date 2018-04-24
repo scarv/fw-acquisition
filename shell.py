@@ -74,7 +74,7 @@ def main():
             print(value)
         elif(cmd == "set_cfg"):
             field = bytes([int(lexed[1])])
-            value = bytes(lexed[2],encoding="ascii")
+            value = bytes([int(lexed[2])])
             value = comms.doSetCfg(field, value)
             print(value)
 
