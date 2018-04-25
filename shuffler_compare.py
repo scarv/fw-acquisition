@@ -37,11 +37,14 @@ def parse_args():
 
     parser.add_argument("--dump-traces", action="store_true",
         help="Write the captured traces to a file.")
+
+    parser.add_argument("--constant-message", action="store_true",
+        help="If set, the plaintext will be kept constant during the runs.")
     
     return parser.parse_args()
 
 
-def capture_traces(num_traces, scope, comms, message, key):
+def capture_traces(num_traces, scope, comms, message, key, args):
     """
     Capture the supplied number of traces and put them in storage.
     """
@@ -55,9 +58,9 @@ def capture_traces(num_traces, scope, comms, message, key):
 
     for i in pb:
         
-        message         = edec.GenerateMessage()
-
-        comms.doSetMsg(message)
+        if(not args.constant_message):
+            message         = edec.GenerateMessage()
+            comms.doSetMsg(message)
 
         scope.StartCapture()
         comms.doEncrypt()
@@ -115,12 +118,12 @@ def main():
     # First trace set with the shuffler off
     log.info("Capturing non-shuffler traces...")
     shuffler_disable(comms)
-    traces_control  = capture_traces(num_traces, scope, comms, message,key)
+    traces_control  = capture_traces(num_traces,scope,comms, message,key,args)
 
     # Next trace set with the shuffler on
     log.info("Capturing shuffled traces...")
     shuffler_enable(comms)
-    traces_shuffler = capture_traces(num_traces, scope, comms, message,key)
+    traces_shuffler = capture_traces(num_traces,scope,comms, message,key,args)
     shuffler_disable(comms)
 
     log.info("Trace gathering complete.")
@@ -134,7 +137,11 @@ def main():
 
     # plot the two trace sets side by side
     fig = plt.figure(1)
-    fig.suptitle("Shuffler / Control Trace Comparison (changing key/message)")
+    if(args.constant_message):   
+        fig.suptitle("Shuffler Trace Comparison (changing key/message)")
+    else:
+        fig.suptitle("Shuffler Trace Comparison (constant key/message)")
+
     plt.tight_layout(0)
 
     # Control traces
