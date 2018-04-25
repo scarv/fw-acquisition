@@ -81,10 +81,10 @@ class SassComms:
             sys.exit(1)
 
         if(response == SASS_STATUS_OK):
-            log.info("SASS_STATUS_OK")
+            log.debug("SASS_STATUS_OK")
             return True
         elif(response == SASS_STATUS_ERR):
-            log.info("SASS_STATUS_ERR")
+            log.debug("SASS_STATUS_ERR")
             return False
         else:
             log.error("Unknown response code:")
@@ -100,7 +100,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_HELLOWORLD")
+        log.debug("SASS_CMD_HELLOWORLD")
 
         self.port.write(SASS_CMD_HELLOWORLD)
         self.port.flush()
@@ -117,7 +117,7 @@ class SassComms:
         """
         assert len(new_key) == self.keylength
 
-        log.info("SASS_CMD_SET_KEY %s" % new_key.hex())
+        log.debug("SASS_CMD_SET_KEY %s" % new_key.hex())
         
         hp = int(self.msglength/2)
 
@@ -138,7 +138,7 @@ class SassComms:
         - Return False if we get an error response code.
         """
 
-        log.info("SASS_CMD_GET_KEY")
+        log.debug("SASS_CMD_GET_KEY")
 
         self.port.write(SASS_CMD_GET_KEY)
         self.port.flush()
@@ -161,7 +161,7 @@ class SassComms:
         """
         assert len(new_msg) == self.msglength
 
-        log.info("SASS_CMD_SET_MSG %s" % new_msg.hex())
+        log.debug("SASS_CMD_SET_MSG %s" % new_msg.hex())
 
         hp = int(self.msglength/2)
 
@@ -182,7 +182,7 @@ class SassComms:
         - Return False if we get an error response code.
         """
 
-        log.info("SASS_CMD_GET_MSG")
+        log.debug("SASS_CMD_GET_MSG")
 
         self.port.write(SASS_CMD_GET_MSG)
         self.port.flush()
@@ -204,7 +204,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_SET_CIPHER %s" % new_cipher.hex)
+        log.debug("SASS_CMD_SET_CIPHER %s" % new_cipher.hex)
 
         self.port.write(SASS_CMD_SET_CIPHER)
         self.port.write(new_cipher)
@@ -220,7 +220,7 @@ class SassComms:
         - Return False if we get an error response code.
         """
 
-        log.info("SASS_CMD_GET_CIPHER")
+        log.debug("SASS_CMD_GET_CIPHER")
 
         self.port.write(SASS_CMD_GET_CIPHER)
         self.port.flush()
@@ -242,7 +242,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_SET_CFG %s %s" % (field,value))
+        log.debug("SASS_CMD_SET_CFG %s %s" % (field,value))
 
         self.port.write(SASS_CMD_SET_CFG)
         self.port.write(field)
@@ -261,7 +261,7 @@ class SassComms:
         - Return False if we get an error response code.
         """
 
-        log.info("SASS_CMD_GET_CFG")
+        log.debug("SASS_CMD_GET_CFG")
 
         self.port.write(SASS_CMD_GET_CFG)
         self.port.write(field)
@@ -285,7 +285,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_DO_ENCRYPT")
+        log.debug("SASS_CMD_DO_ENCRYPT")
 
         self.port.write(SASS_CMD_DO_ENCRYPT)
         self.port.flush()
@@ -303,7 +303,7 @@ class SassComms:
         - Die if we get no response at all or an unexpected response.
         """
 
-        log.info("SASS_CMD_DO_DECRYPT")
+        log.debug("SASS_CMD_DO_DECRYPT")
 
         self.port.write(SASS_CMD_DO_ENCRYPT)
         self.port.flush()
@@ -316,7 +316,7 @@ class SassComms:
         Run whatever the custom command on the target is.
         """
 
-        log.info("SASS_CMD_DO_CUSTOM")
+        log.debug("SASS_CMD_DO_CUSTOM")
 
         self.port.write(SASS_CMD_DO_CUSTOM)
         self.port.flush()
