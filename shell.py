@@ -90,6 +90,12 @@ def main():
                 value = bytes([int(lexed[3])])
                 value = comms.doSetCfg(field, value)
                 print(value)
+        elif(cmd == "custom"):
+            value = comms.doCustom()
+            print(value)
+        elif(cmd == "encrypt"):
+            value = comms.doEncrypt()
+            print(value)
 
     comms.ClosePort()
     sys.exit(0)

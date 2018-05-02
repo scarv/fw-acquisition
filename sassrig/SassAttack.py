@@ -225,12 +225,9 @@ class SassAttack:
 
         if(self.args.show_correlations):
             plt.figure(1)
-            plt.tight_layout()
             plt.subplot(4,4,keybyte+1)
             plt.ylim([-0.1,0.1])
             plt.plot(R,linewidth = 0.25)
-            plt.draw()
-            plt.pause(0.001)
         
         candidateidx = np.unravel_index(np.argmax(R, axis=None), R.shape)
         log.debug("byte guess: %s" % hex(candidateidx[0]))
@@ -251,7 +248,7 @@ class SassAttack:
         
         log.info("Loaded %d traces..." % len(self.storage))
         
-        keybytes = [-1] * 16
+        keybytes = [KeyEstimate(0,0)] * 16
        
         if(self.args.show_correlations):
             plt.ion()
@@ -261,6 +258,19 @@ class SassAttack:
         pb.set_description("Guessing Key Bytes")
         for i in pb:
             keybytes[i] = self.getCandidateForKeyByte(i,16)
+
+            keyguess = [k.value for k in keybytes]
+            keyguess = bytearray(keyguess).hex()
+
+            fig=plt.figure(1)
+            fig.suptitle("Attacking %s - keyguess=%s" %(
+                self.tracefile,
+                keyguess
+            ),fontsize=11,y=0.995)
+            plt.tight_layout()
+            plt.draw()
+            plt.pause(0.001)
+
 
         if(self.args.show_correlations):
             plt.ioff()

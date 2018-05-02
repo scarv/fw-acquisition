@@ -118,7 +118,8 @@ def main():
     # First trace set with the shuffler off
     log.info("Capturing non-shuffler traces...")
     shuffler_disable(comms)
-    traces_control  = capture_traces(num_traces,scope,comms, message,key,args)
+    traces_control_0  = capture_traces(num_traces,scope,comms, message,key,args)
+    #traces_control_1  = capture_traces(num_traces,scope,comms, message,key,args)
 
     # Next trace set with the shuffler on
     log.info("Capturing shuffled traces...")
@@ -132,7 +133,7 @@ def main():
         log.info("Writing captured traces to disk")
         control_fname = "traces-control-[key].trs".replace("[key]",key.hex())
         shuffle_fname = "traces-shuffle-[key].trs".replace("[key]",key.hex())
-        traces_control.DumpTRS(control_fname)
+        traces_control_0.DumpTRS(control_fname)
         traces_shuffler.DumpTRS(shuffle_fname)
 
     # plot the two trace sets side by side
@@ -146,10 +147,16 @@ def main():
 
     # Control traces
     ctrl_plot = plt.subplot(3,1,1)
-    ctrl_plot.set_title("Control - shuffler disabled")
-    control_traces = np.array([t.data for t in traces_control.traces])
-    control_traces = np.mean(control_traces,axis=0)
-    plt.plot(control_traces, linewidth=0.25)
+    ctrl_plot.set_title("Control 0 - shuffler disabled")
+    control_traces_0 = np.array([t.data for t in traces_control_0.traces])
+    control_traces_0 = np.mean(control_traces_0,axis=0)
+    plt.plot(control_traces_0, linewidth=0.25)
+    
+    #ctrl_plot = plt.subplot(3,2,2)
+    #ctrl_plot.set_title("Control 1 - shuffler disabled")
+    #control_traces_1 = np.array([t.data for t in traces_control_1.traces])
+    #control_traces_1 = np.mean(control_traces_1,axis=0)
+    #plt.plot(control_traces_1, linewidth=0.25)
 
     # Shuffler traces
     shf_plot = plt.subplot(3,1,2)
@@ -159,10 +166,16 @@ def main():
     plt.plot(shuffle_traces, linewidth=0.25)
     
     shf_plot = plt.subplot(3,1,3)
-    shf_plot.set_title("Difference")
-    difference = control_traces - shuffle_traces
+    shf_plot.set_title("Difference - control 0 / shuffled")
+    difference = control_traces_0 - shuffle_traces
     plt.plot(difference, linewidth=0.25)
     plt.ylim([shuffle_traces.min(),shuffle_traces.max()])
+    
+    #shf_plot = plt.subplot(3,2,6)
+    #shf_plot.set_title("Difference - control 0 / control 1")
+    #difference = control_traces_1 - control_traces_0
+    #plt.plot(difference, linewidth=0.25)
+    #plt.ylim([shuffle_traces.min(),shuffle_traces.max()])
 
     plt.show()
 
