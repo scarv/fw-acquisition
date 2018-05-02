@@ -40,6 +40,9 @@ def parse_args():
 
     parser.add_argument("--constant-message", action="store_true",
         help="If set, the plaintext will be kept constant during the runs.")
+
+    parser.add_argument("--scheme", choices=["bayrak","new"],default="bayrak",
+        help="Which shuffler scheme should we use?")
     
     return parser.parse_args()
 
@@ -105,6 +108,14 @@ def main():
     message         = edec.GenerateMessage()
     key             = edec.GenerateKeyBits()
     num_traces      = args.num_traces
+
+    # Make sure we use the right shuffling scheme
+    if(args.scheme == "bayrak"):
+        comms.doSetCfg(2,1)
+        log.log(100,"Using Bayrak Shuffling Scheme")
+    elif(args.scheme == "new"):
+        comms.doSetCfg(2,2)
+        log.log(100,"Using New Shuffling Scheme")
 
     log.info("Traces : %d" % num_traces)
     log.info("Message: %s" % message)
