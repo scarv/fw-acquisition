@@ -142,8 +142,8 @@ def main():
 
     if(args.dump_traces):
         log.info("Writing captured traces to disk")
-        control_fname = "traces-control-[key].trs".replace("[key]",key.hex())
-        shuffle_fname = "traces-shuffle-[key].trs".replace("[key]",key.hex())
+        control_fname = "traces-%s-control-%s.trs"%(args.scheme,key.hex())
+        shuffle_fname = "traces-%s-shuffle-%s.trs"%(args.scheme,key.hex())
         traces_control_0.DumpTRS(control_fname)
         traces_shuffler.DumpTRS(shuffle_fname)
 

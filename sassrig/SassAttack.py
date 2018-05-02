@@ -262,14 +262,15 @@ class SassAttack:
             keyguess = [k.value for k in keybytes]
             keyguess = bytearray(keyguess).hex()
 
-            fig=plt.figure(1)
-            fig.suptitle("Attacking %s - keyguess=%s" %(
-                self.tracefile,
-                keyguess
-            ),fontsize=11,y=0.995)
-            plt.tight_layout()
-            plt.draw()
-            plt.pause(0.001)
+            if(self.args.show_correlations):
+                fig=plt.figure(1)
+                fig.suptitle("Attacking %s - keyguess=%s" %(
+                    self.tracefile,
+                    keyguess
+                ),fontsize=11,y=0.995)
+                plt.tight_layout()
+                plt.draw()
+                plt.pause(0.001)
 
 
         if(self.args.show_correlations):
