@@ -125,7 +125,7 @@ def run_sanity(args,comms,edec,scope):
     aes_implementation = ["reference","looped","unrolled"]
 
     key = edec.GenerateKeyBits()
-    num_traces = 1000
+    num_traces = 10
 
     plt.ion()
 
@@ -137,6 +137,9 @@ def run_sanity(args,comms,edec,scope):
             set_shuffler_scheme(comms,scheme)
 
             set_shuffler_enable(comms,False)
+
+            print("Scheme = %s, AES = %s, shuffle enable=%s"%(
+                scheme,aes,False))
             
             if(not check_correctness(comms,edec)):
                 sys.exit(1)
@@ -146,6 +149,9 @@ def run_sanity(args,comms,edec,scope):
                                     comms,key,args,dis_traceid,edec)
             
             set_shuffler_enable(comms,True)
+            
+            print("Scheme = %s, AES = %s, shuffle enable=%s"%(
+                scheme,aes,True))
             
             if(not check_correctness(comms,edec)):
                 sys.exit(1)
@@ -166,17 +172,17 @@ def run_sanity(args,comms,edec,scope):
                       max(points_en.max(),points_dis.max())]
 
             
-            plt.subplot(5,3,idx*3+1)
+            plt.subplot(6,3,idx*3+1)
             plt.plot(points_dis,linewidth=0.25)
             plt.title("Trace capture: %s, %s, %s" % dis_traceid)
             plt.ylim(limits)
             
-            plt.subplot(5,3,idx*3+2)
+            plt.subplot(6,3,idx*3+2)
             plt.plot(points_en,linewidth=0.25)
             plt.title("Trace capture: %s, %s, %s" % en_traceid)
             plt.ylim(limits)
             
-            plt.subplot(5,3,idx*3+3)
+            plt.subplot(6,3,idx*3+3)
             plt.plot(points_en-points_dis,linewidth=0.25)
             plt.title("Difference")
             plt.ylim(limits)
