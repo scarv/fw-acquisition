@@ -8,6 +8,7 @@ import shlex
 import argparse
 import logging as log
 
+import pyaes
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,27 +23,27 @@ def parse_args():
     """
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("-v", action="store_true", 
-        help="Turn on verbose logging.")
-    parser.add_argument("-V", action="store_true", 
-        help="Turn on very verbose logging.")
-    
     parser.add_argument("port", type=str,
         help="Target serial port to use")
     parser.add_argument("baud", type=int,
         help="Baud rate for the serial port.")
     
+    parser.add_argument("-v", action="store_true", 
+        help="Turn on verbose logging.")
+    parser.add_argument("-V", action="store_true", 
+        help="Turn on very verbose logging.")
+    
     parser.add_argument("--num-traces", type=int, default=10000,
         help="How many traces to capture for each set?")
+
+    parser.add_argument("--batch", action="store_true",
+        help="Don't show graphs.")
 
     parser.add_argument("--dump-traces", action="store_true",
         help="Write the captured traces to a file.")
 
     parser.add_argument("--constant-message", action="store_true",
         help="If set, the plaintext will be kept constant during the runs.")
-
-    parser.add_argument("--scheme", choices=["bayrak","new"],default="bayrak",
-        help="Which shuffler scheme should we use?")
     
     return parser.parse_args()
 
@@ -83,6 +84,29 @@ def shuffler_disable(comms):
     log.info("Disable shuffler")
     comms.doSetCfg(bytes([0]),bytes([0]))
 
+
+def check_correctness(comms, edec):
+    """
+    Make sure we get the right answer when encrypting and decrypting.
+    """
+    key                 = edec.GenerateKeyBits()
+    plaintext           = edec.GenerateMessage()
+    aes                 = pyaes.AESModeOfOperationECB(key)
+    oracle_ciphertext   = aes.encrypt(plaintext)
+
+    comms.doSetKey(key)
+    comms.doSetMsg(plaintext)
+    comms.doEncrypt()
+    test_ciphertext     = comms.doGetCipher()
+
+    if(oracle_ciphertext != test_ciphertext):
+        log.error("Encypt error: Oracle = %s, Test = %s" % (
+            oracle_ciphertext.hex(), test_ciphertext.hex()))
+        return False
+    else:
+        return True
+
+
 def main():
     """
     Main program loop.
@@ -109,14 +133,6 @@ def main():
     key             = edec.GenerateKeyBits()
     num_traces      = args.num_traces
 
-    # Make sure we use the right shuffling scheme
-    if(args.scheme == "bayrak"):
-        comms.doSetCfg(2,1)
-        log.log(100,"Using Bayrak Shuffling Scheme")
-    elif(args.scheme == "new"):
-        comms.doSetCfg(2,2)
-        log.log(100,"Using New Shuffling Scheme")
-
     log.info("Traces : %d" % num_traces)
     log.info("Message: %s" % message)
     log.info("Key    : %s" % key    )
@@ -129,12 +145,13 @@ def main():
     # First trace set with the shuffler off
     log.info("Capturing non-shuffler traces...")
     shuffler_disable(comms)
-    traces_control_0  = capture_traces(num_traces,scope,comms, message,key,args)
-    #traces_control_1  = capture_traces(num_traces,scope,comms, message,key,args)
+    check_correctness(comms,edec)
+    traces_control  = capture_traces(num_traces,scope,comms, message,key,args)
 
     # Next trace set with the shuffler on
     log.info("Capturing shuffled traces...")
     shuffler_enable(comms)
+    check_correctness(comms,edec)
     traces_shuffler = capture_traces(num_traces,scope,comms, message,key,args)
     shuffler_disable(comms)
 
@@ -142,9 +159,9 @@ def main():
 
     if(args.dump_traces):
         log.info("Writing captured traces to disk")
-        control_fname = "traces-%s-control-%s.trs"%(args.scheme,key.hex())
-        shuffle_fname = "traces-%s-shuffle-%s.trs"%(args.scheme,key.hex())
-        traces_control_0.DumpTRS(control_fname)
+        control_fname = "traces-control-%s.trs"%(key.hex())
+        shuffle_fname = "traces-shuffle-%s.trs"%(key.hex())
+        traces_control.DumpTRS(control_fname)
         traces_shuffler.DumpTRS(shuffle_fname)
 
     # plot the two trace sets side by side
@@ -156,39 +173,30 @@ def main():
 
     plt.tight_layout(0)
 
-    # Control traces
-    ctrl_plot = plt.subplot(3,1,1)
-    ctrl_plot.set_title("Control 0 - shuffler disabled")
-    control_traces_0 = np.array([t.data for t in traces_control_0.traces])
-    control_traces_0 = np.mean(control_traces_0,axis=0)
-    plt.plot(control_traces_0, linewidth=0.25)
-    
-    #ctrl_plot = plt.subplot(3,2,2)
-    #ctrl_plot.set_title("Control 1 - shuffler disabled")
-    #control_traces_1 = np.array([t.data for t in traces_control_1.traces])
-    #control_traces_1 = np.mean(control_traces_1,axis=0)
-    #plt.plot(control_traces_1, linewidth=0.25)
+    if(not args.batch):
 
-    # Shuffler traces
-    shf_plot = plt.subplot(3,1,2)
-    shf_plot.set_title("Test - shuffler enabled")
-    shuffle_traces = np.array([t.data for t in traces_shuffler.traces])
-    shuffle_traces = np.mean(shuffle_traces,axis=0)
-    plt.plot(shuffle_traces, linewidth=0.25)
-    
-    shf_plot = plt.subplot(3,1,3)
-    shf_plot.set_title("Difference - control 0 / shuffled")
-    difference = control_traces_0 - shuffle_traces
-    plt.plot(difference, linewidth=0.25)
-    plt.ylim([shuffle_traces.min(),shuffle_traces.max()])
-    
-    #shf_plot = plt.subplot(3,2,6)
-    #shf_plot.set_title("Difference - control 0 / control 1")
-    #difference = control_traces_1 - control_traces_0
-    #plt.plot(difference, linewidth=0.25)
-    #plt.ylim([shuffle_traces.min(),shuffle_traces.max()])
+        # Control traces
+        ctrl_plot = plt.subplot(1,1,1)
+        ctrl_plot.set_title("Control 0 - shuffler disabled")
+        control_traces = np.array([t.data for t in traces_control.traces])
+        control_traces = np.mean(control_traces,axis=0)
+        plt.plot(control_traces, linewidth=0.25)
+        
 
-    plt.show()
+        # Shuffler traces
+        shf_plot = plt.subplot(2,1,2)
+        shf_plot.set_title("Test - shuffler enabled")
+        shuffle_traces = np.array([t.data for t in traces_shuffler.traces])
+        shuffle_traces = np.mean(shuffle_traces,axis=0)
+        plt.plot(shuffle_traces, linewidth=0.25)
+        
+        # Difference between the two.
+        shf_plot = plt.subplot(3,1,3)
+        shf_plot.set_title("Difference - control 0 / shuffled")
+        difference = control_traces - shuffle_traces
+        plt.plot(difference, linewidth=0.25)
+
+        plt.show()
 
     # Cleanup and exit
     comms.ClosePort()
