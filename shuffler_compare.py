@@ -176,7 +176,7 @@ def main():
     if(not args.batch):
 
         # Control traces
-        ctrl_plot = plt.subplot(1,1,1)
+        ctrl_plot = plt.subplot(3,1,1)
         ctrl_plot.set_title("Control 0 - shuffler disabled")
         control_traces = np.array([t.data for t in traces_control.traces])
         control_traces = np.mean(control_traces,axis=0)
@@ -184,7 +184,7 @@ def main():
         
 
         # Shuffler traces
-        shf_plot = plt.subplot(2,1,2)
+        shf_plot = plt.subplot(3,1,2)
         shf_plot.set_title("Test - shuffler enabled")
         shuffle_traces = np.array([t.data for t in traces_shuffler.traces])
         shuffle_traces = np.mean(shuffle_traces,axis=0)
@@ -194,6 +194,7 @@ def main():
         shf_plot = plt.subplot(3,1,3)
         shf_plot.set_title("Difference - control 0 / shuffled")
         difference = control_traces - shuffle_traces
+        plt.ylim([-0.0025,0.0025])
         plt.plot(difference, linewidth=0.25)
 
         plt.show()
