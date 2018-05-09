@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 
 """
 File containing classes and functions for interfacing with the power
@@ -9,8 +10,12 @@ import sys
 import array
 import logging as log
 import numpy as np
+import argparse
+import matplotlib.pyplot as plt
 
 from picoscope import ps5000a
+
+from SassComms import SassComms
 
 
 class SassScope:
@@ -80,6 +85,58 @@ class SassScope:
             #log.error(str(e))
             return [None,e]
 
+    
+    def FindBestSampleRate(self,comms,cpu_freq,graph=False):
+        """
+        Tries to find the best sample rate to include the entire
+        AES process.
+        """
+        resolution  = '8'
+        sample_freq = 2 * cpu_freq
+        
+        self.scope.setResolution(resolution)
+        
+        sample_count = 1000
+        finished     = False
+
+        plt.ion()
+
+        while(not finished):
+            actualSampleFreq, maxSamples = \
+                self.scope.setSamplingFrequency(sample_freq,sample_count)
+
+            self.StartCapture()
+            comms.doEncrypt()
+            self.WaitForReady()
+            power   = self.GetData("A")
+            trigger = self.GetData("B")
+            
+            trigger = trigger / np.max(trigger)
+            idx1    = trigger[:] >  0.5
+            idx0    = trigger[:] <= 0.5
+            trigger[idx1] = 1.0
+            trigger[idx0] = 0.0
+
+            if(trigger[-1] == 1.0):
+                finished = False
+                sample_count += 1000
+            else:
+                finished = True
+
+            if(graph):
+                plt.figure(1)
+                plt.clf()
+                plt.subplot(2,1,1)
+                plt.plot(power,linewidth=0.25)
+                plt.subplot(2,1,2)
+                plt.plot(trigger,linewidth=0.25)
+                plt.show()
+                plt.draw()
+                plt.pause(0.001)
+
+        plt.clf()
+        plt.close()
+        return sample_count
 
     
     def ConfigureScope(self):
@@ -136,3 +193,36 @@ class SassScope:
         """
         log.info("Closing scope connection")
         self.scope.close()
+
+
+def main():
+
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("port", type=str,
+        help="Target serial port to use")
+    parser.add_argument("baud", type=int,
+        help="Baud rate for the serial port.")
+    
+    parser.add_argument("--freq", type=float,default=100e6,
+        help="Working frequency of the CPU")
+    
+    parser.add_argument("--graph", action="store_true",
+        help="Show graphs as we work")
+
+    args = parser.parse_args()
+
+    comms = SassComms(serialPort=args.port,serialBaud=args.baud)
+    scope = SassScope()
+    scope.OpenScope()
+    scope.ConfigureScope()
+    samplecount = scope.FindBestSampleRate(comms,args.freq,graph=args.graph)
+    scope.CloseScope()
+    comms.ClosePort()
+
+    print("Sample count for CPU at %fHz is %d" % (args.freq,samplecount))
+
+if(__name__ == "__main__"):
+    main()
+
+
