@@ -32,6 +32,7 @@ class SassStorage:
         self.traces    = []
         self.trace_len = None
         self.plaintext_len = 16 # bytes
+        self.trace_description = "No Description"
         
         if(trs_file != None):
             self.LoadTRS(trs_file)
@@ -105,6 +106,12 @@ class SassStorage:
 
             fh.write(b"\x44") # Length of data associated with each trace
             fh.write(self.plaintext_len.to_bytes(2,byteorder="little"))
+            
+            fh.write(b"\x47") # Trace description
+            ta = bytes(self.trace_description,encoding="ascii")
+            fh.write(b"\x84") # Next 4 bytes give length of description
+            fh.write(len(ta).to_bytes(4,byteorder="little"))
+            fh.write(ta)
 
             fh.write(b"\x5f") # Trace block marker.
             
@@ -162,6 +169,15 @@ class SassStorage:
                     # Length of data (msg/cipher text) associated with a trace
                     data_per_trace = int.from_bytes(fh.read(2),"little")
                     log.info("Data bytes per trace: %d" % data_per_trace)
+            
+                elif(ctrlcode == b"\x47"):
+                    # Trace description
+                    lenb = int.from_bytes(fh.read(1),"little")
+                    if(not lenb & 0x80):
+                        self.trace_description = fh.read(lenb).decode("ascii")
+                    else:
+                        lenb = int.from_bytes(fh.read(lenb&0x7F),"little")
+                        self.trace_description = fh.read(lenb).decode("ascii")
 
                 else:
                     log.error("Unknown byte marker: %s"%ctrlcode)

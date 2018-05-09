@@ -243,6 +243,7 @@ class SassAttack:
         log.info("Running attack on trace file: %s" % self.tracefile)
 
         self.storage = SassStorage(self.tracefile)
+        log.info(self.storage.trace_description)
 
         self.isolateData()
         
