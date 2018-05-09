@@ -15,7 +15,10 @@ import matplotlib.pyplot as plt
 
 from picoscope import ps5000a
 
-from SassComms import SassComms
+if(__name__=="__main__"):
+    from SassComms import SassComms
+else:
+    from .SassComms import SassComms
 
 
 class SassScope:
@@ -89,7 +92,8 @@ class SassScope:
     def FindBestSampleRate(self,comms,cpu_freq,graph=False):
         """
         Tries to find the best sample rate to include the entire
-        AES process.
+        AES process. Returns the number of samples which should be
+        captured to get the entire operation being anaylsed.
         """
         resolution  = '8'
         sample_freq = 2 * cpu_freq
@@ -104,6 +108,9 @@ class SassScope:
         while(not finished):
             actualSampleFreq, maxSamples = \
                 self.scope.setSamplingFrequency(sample_freq,sample_count)
+            
+            self.sample_frequency = actualSampleFreq
+            self.sample_count     = sample_count
 
             self.StartCapture()
             comms.doEncrypt()
