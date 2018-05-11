@@ -33,6 +33,14 @@ SASS_CMD_DO_CUSTOM  = b"\x0C"
 SASS_STATUS_OK      = b"\xA0"
 SASS_STATUS_ERR     = b"\xFA"
 
+class SassCommsException (Exception):
+    """
+    Communications exception class
+    """
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class SassComms:
     """
     This class is responsible for implementing the communication protocol
@@ -87,10 +95,7 @@ class SassComms:
             log.debug("SASS_STATUS_ERR")
             return False
         else:
-            log.error("Unknown response code:")
-            log.error(response)
-            sys.exit(1)
-
+            raise SassCommsException("Unknown response code: %s" % response)
 
     def doHelloWorld(self):
         """
