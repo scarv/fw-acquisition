@@ -71,6 +71,8 @@ def parse_args():
         help="Combine all traces which share the same data byte values.")
     attack.add_argument("--average-correlations", action="store_true",
         help="")
+    attack.add_argument("--blur", action="store_true",
+        help="")
     
     
     custom = subs.add_parser("custom",
