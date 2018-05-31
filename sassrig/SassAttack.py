@@ -61,14 +61,14 @@ class SassAttack:
     """
 
 
-    def __init__(self, args):
+    def __init__(self, args,trace_file):
         """
         Create a new attack class.
         """
         self.args          = args
         self.isolate_start = args.isolate_from
         self.isolate_end   = args.isolate_to
-        self.tracefile     = args.trace_file
+        self.tracefile     = trace_file
         self.bin_traces    = args.bin_traces
         self.power_lut     = self.precompute_power_estimates()
 
@@ -220,14 +220,13 @@ class SassAttack:
         assert(H.shape == (D,len(K)))
         log.debug("Shape of H: %s" % str(H.shape))
 
-        R = self.computeCorrelation(np.transpose(H),np.transpose(T))
+        R = np.abs(self.computeCorrelation(np.transpose(H),np.transpose(T)))
         log.debug("Shape of R: %s" % str(R.shape))
 
-        if(self.args.show_correlations):
-            plt.figure(1)
-            plt.subplot(4,4,keybyte+1)
-            plt.ylim([-0.1,0.1])
-            plt.plot(R,linewidth = 0.25)
+        plt.figure(1)
+        plt.subplot(4,4,keybyte+1)
+        plt.ylim([0.0,0.1])
+        plt.plot(R,linewidth = 0.25)
         
         candidateidx = np.unravel_index(np.argmax(R, axis=None), R.shape)
         log.debug("byte guess: %s" % hex(candidateidx[0]))
@@ -263,21 +262,26 @@ class SassAttack:
             keyguess = [k.value for k in keybytes]
             keyguess = bytearray(keyguess).hex()
 
+            fig=plt.figure(1)
+            fig.suptitle("Attacking %s - keyguess=%s" %(
+                self.tracefile,
+                keyguess
+            ),fontsize=11,y=0.995)
+            plt.tight_layout()
+            plt.draw()
+
             if(self.args.show_correlations):
-                fig=plt.figure(1)
-                fig.suptitle("Attacking %s - keyguess=%s" %(
-                    self.tracefile,
-                    keyguess
-                ),fontsize=11,y=0.995)
-                plt.tight_layout()
-                plt.draw()
                 plt.pause(0.001)
 
 
+        fig = plt.figure(1)
+        fig.set_size_inches(14,14)
+        print("Saving figure: %s" % self.tracefile+".png")
+        fig.savefig(self.tracefile+".png")
         if(self.args.show_correlations):
             plt.ioff()
+        fig.clf()
 
         print("Final key guess: %s" % [hex(k.value) for k in keybytes])
-        input("[Return] to exit")
 
 

@@ -59,8 +59,8 @@ def parse_args():
 
     attack = subs.add_parser("attack",
         help="Try to recover the key from a set of captured traces")
-    attack.add_argument("trace_file", type=str,
-        help="The trace file to attack.")
+    attack.add_argument("trace_files", type=str,
+        help="The trace file to attack.",nargs="+")
     attack.add_argument("--show-correlations", action="store_true",
         help="During the attack, show graphs of key guesses v.s correlation.")
     attack.add_argument("--isolate-from", type=int, default=0,
@@ -418,8 +418,9 @@ def main():
 
     elif(args.command == "attack"):
         
-        attack = sassrig.SassAttack(args)
-        attack.run()
+        for tracefile in args.trace_files:
+            attack = sassrig.SassAttack(args,tracefile)
+            attack.run()
 
     else:
         log.error("Unsupported command: %s" % args.command)
