@@ -89,7 +89,8 @@ class SassScope:
             return [None,e]
 
     
-    def FindBestSampleRate(self,comms,cpu_freq,graph=False):
+    def FindBestSampleRate(self,comms,cpu_freq,graph=False,
+        trigger_threshold = 0.5):
         """
         Tries to find the best sample rate to include the entire
         AES process. Returns the number of samples which should be
@@ -119,8 +120,8 @@ class SassScope:
             trigger = self.GetData("B")
             
             trigger = trigger / np.max(trigger)
-            idx1    = trigger[:] >  0.5
-            idx0    = trigger[:] <= 0.5
+            idx1    = trigger[:] >  trigger_threshold
+            idx0    = trigger[:] <= trigger_threshold
             trigger[idx1] = 1.0
             trigger[idx0] = 0.0
 
