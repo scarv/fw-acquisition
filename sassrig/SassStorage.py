@@ -200,7 +200,7 @@ class SassStorage:
                 
                 message   = fh.read(self.data_per_trace)
                 tracedata = array.array("f")
-                tracedata.fromfile(fh, sekf,samples_per_trace)
+                tracedata.fromfile(fh, self,samples_per_trace)
 
                 toadd = SassTrace(tracedata, message = message)
                 self.AddTrace(toadd)
