@@ -193,14 +193,14 @@ class SassStorage:
                 # We only want to load the headers.
                 return
 
-            pb = tqdm(range(0,num_traces))
+            pb = tqdm(range(0,self.num_traces))
             pb.set_description("Loading Traces")
 
             for i in pb:
                 
-                message   = fh.read(data_per_trace)
+                message   = fh.read(self.data_per_trace)
                 tracedata = array.array("f")
-                tracedata.fromfile(fh, samples_per_trace)
+                tracedata.fromfile(fh, sekf,samples_per_trace)
 
                 toadd = SassTrace(tracedata, message = message)
                 self.AddTrace(toadd)
