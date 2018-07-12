@@ -24,7 +24,7 @@ class SassStorage:
     """
 
 
-    def __init__(self, trs_file = None):
+    def __init__(self, trs_file = None, info_only=False):
         """
         Load back a trs file from disk as a set of traces.
         """
@@ -33,6 +33,7 @@ class SassStorage:
         self.trace_len = None
         self.plaintext_len = 16 # bytes
         self.trace_description = "No Description"
+        self.info_only = info_only
         
         if(trs_file != None):
             self.LoadTRS(trs_file)
@@ -135,10 +136,10 @@ class SassStorage:
         with open(filepath, "rb") as fh:
 
             ctrlcode            = fh.read(1)
-            numtraces           = None
-            samples_per_trace   = None
-            data_per_trace      = None
-            coding_type         = None
+            self.numtraces           = None
+            self.samples_per_trace   = None
+            self.data_per_trace      = None
+            self.coding_type         = None
 
             while(ctrlcode != b"\x5f"):
 
@@ -146,29 +147,29 @@ class SassStorage:
                 
                 if(ctrlcode == b"\x41"):
                     # Number of traces
-                    num_traces = int.from_bytes(fh.read(4),"little")
-                    log.info("Number of traces: %d" % num_traces)
+                    self.num_traces = int.from_bytes(fh.read(4),"little")
+                    log.info("Number of traces: %d" % self.num_traces)
                     
                 elif(ctrlcode == b"\x42"):
                     # Samples per trace
-                    samples_per_trace = int.from_bytes(fh.read(4),"little")
-                    self.trace_len = samples_per_trace
-                    log.info("Samples per trace: %d" % samples_per_trace)
+                    self.samples_per_trace = int.from_bytes(fh.read(4),"little")
+                    self.trace_len = self.samples_per_trace
+                    log.info("Samples per trace: %d" % self.samples_per_trace)
 
                 elif(ctrlcode == b"\x43"):
                     # Sample coding type (float, 4 bytes each)
-                    coding_type = fh.read(1)
+                    self.coding_type = fh.read(1)
 
-                    if(coding_type != SAMPLE_ENCODING_F4):
-                        log.error("Unsupported sample encoding: %s" % coding_type)
+                    if(self.coding_type != SAMPLE_ENCODING_F4):
+                        log.error("Unsupported sample encoding: %s" % self.coding_type)
                         return
                     else:
                         log.info("Coding Type: float-4byte.")
 
                 elif(ctrlcode == b"\x44"):
                     # Length of data (msg/cipher text) associated with a trace
-                    data_per_trace = int.from_bytes(fh.read(2),"little")
-                    log.info("Data bytes per trace: %d" % data_per_trace)
+                    self.data_per_trace = int.from_bytes(fh.read(2),"little")
+                    log.info("Data bytes per trace: %d" % self.data_per_trace)
             
                 elif(ctrlcode == b"\x47"):
                     # Trace description
@@ -187,6 +188,10 @@ class SassStorage:
 
             # We have finished reading the header, now we just read the
             # rest of the data and traces.
+
+            if(self.info_only):
+                # We only want to load the headers.
+                return
 
             pb = tqdm(range(0,num_traces))
             pb.set_description("Loading Traces")
