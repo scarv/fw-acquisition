@@ -78,7 +78,7 @@ class SassComms:
             log.info("Port opened successfully")
         else:
             log.error("Failed to open port!")
-            sys.exit(1)
+            raise SassCommsException("Could not open port %s" % serialPort)
 
 
     def __GetResponse__(self):
