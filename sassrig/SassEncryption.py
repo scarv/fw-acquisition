@@ -37,7 +37,7 @@ class SassEncryption:
     def GenerateKeyBits(self, size = 16):
         """
         Generate and return a random cipherkey of the requested size.
-        - size : Number of bits in the key.
+        - size : Number of bytes in the key.
         Returns a byte string.
         """
         assert size % 8 == 0, "Key length must be a multiple of 8 bits"
