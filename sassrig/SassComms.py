@@ -87,7 +87,7 @@ class SassComms:
 
         if(len(response) == 0):
             log.error("Port timeout waiting for a response")
-            sys.exit(1)
+            raise serial.SerialTimeoutException()
 
         if(response == SASS_STATUS_OK):
             log.debug("SASS_STATUS_OK")
