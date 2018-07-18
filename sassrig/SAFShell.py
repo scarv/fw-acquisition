@@ -1,10 +1,14 @@
 
+import os
 import sys
 import cmd
 import shlex
 import serial
 
-from .SassComms import SassComms
+from .SassComms             import SassComms
+from .SassScope             import SassScope
+from .SAFTTestCapture       import SAFTTestCapture
+from .SAFTTestEvaluation    import SAFTTestEvaluation
 
 class scolors:
     SBOLD       = '\033[1m'
@@ -37,6 +41,7 @@ class SAFShell(cmd.Cmd):
         cmd.Cmd.__init__(self)
 
         self.comms      = None
+        self.scope      = None
         self.exit_shell = False
 
     def __check_comms(self):
@@ -50,6 +55,57 @@ class SAFShell(cmd.Cmd):
             return False
         else:
             return True
+
+    def __check_scope(self):
+        """
+        Check if we have a currently open connection to as oscilisciope
+
+        :rtype: bool
+        :return: True if a connection is open, False otherwise
+        """
+        if(self.scope == None):
+            return False
+        else:
+            return True
+
+
+    def do_scope_open(self, args):
+        """
+        Connect to the scope
+        """
+        
+        if(self.__check_scope()):
+
+            print("Already connected to a scope. Disconnect before opening")
+
+        else:
+            
+            print("Opening scope connection...")
+            self.scope = SassScope()
+            self.scope.OpenScope()
+        
+            self.scope.sample_count    = 12500
+            self.scope.sample_frequency= 125e6
+            self.scope.sample_range    = 20e-3
+
+            self.scope.ConfigureScope()
+
+            print("Opened scope connection")
+            print("\tSample count: %d" % self.scope.sample_count)
+            print("\tSample freq : %f" % self.scope.sample_frequency)
+            print("\tSample range: %f" % self.scope.sample_range)
+
+
+    def do_scope_close(self, args):
+        """
+        Disconnect from the currently connected scope.
+        """
+        if(self.__check_scope()):
+            self.scope.CloseScope()
+            self.scope = None
+            print("Closed scope connection")
+        else:
+            print("No scope connection to close")
 
 
     def do_connect(self, args):
@@ -213,6 +269,96 @@ class SAFShell(cmd.Cmd):
 
             key = self.comms.doGetKey()
             print("%s"%key.hex())
+
+
+    def do_capture_ttest(self, args):
+        """
+        Capture two sets of traces to be used for a ttest.
+
+        Expects three arguments:
+        - num_traces
+        - set1_tracefile
+        - set2_tracefile
+        """
+        args = shlex.split(args)
+        if(len(args) != 3):
+            print("capture_ttest expects 3 arguments")
+            return
+
+        numtraces, set1_file, set2_file = args
+        set1_file = os.path.abspath(os.path.expanduser(os.path.expandvars(set1_file)))
+        set2_file = os.path.abspath(os.path.expanduser(os.path.expandvars(set2_file)))
+        numtraces = int(numtraces)
+
+        if(self.__check_comms() == False):
+        
+            print("No currently active connection.")
+
+        elif(self.__check_scope() == False):
+
+            print("No active oscilliscipe connection.")
+
+        else:
+            
+            print("Capturing ttest trace sets...")
+            
+            cap = SAFTTestCapture(self.comms,self.scope,num_traces=numtraces)
+
+            print("Trace sets key: %s" % cap.key.hex())
+            print("Set1 Message: %s" % cap.set1_msg.hex())
+            
+            cap.RunCapture()
+
+            print("Captured %d traces." % cap.TotalTraces())
+            print("\tSet1 Size: %d" % len(cap.set1))
+            print("\tSet2 Size: %d" % len(cap.set2))
+
+            print("Writing %s" % set1_file)
+            cap.set1.DumpTRS(set1_file)
+
+            print("Writing %s" % set2_file)
+            cap.set2.DumpTRS(set2_file)
+
+            del cap
+            print("TTest Capture Finished")
+
+
+    def do_evaluate_ttest(self, args):
+        """
+        Run a t-test on pre-captured trace sets.
+        
+        Arguments:
+        set1    - Filepath of first trace set with all the same message
+        set2    - Filepath of second trace set with uniform random message
+        """
+        args = shlex.split(args)
+        if(len(args) != 2):
+    
+            print("evaluate_ttest expects two arguments!")
+            print(" Got %s" % str(args))
+
+        else:
+            set1, set2  = args
+        
+            set1 = os.path.abspath(os.path.expanduser(os.path.expandvars(set1)))
+            set2 = os.path.abspath(os.path.expanduser(os.path.expandvars(set2)))
+            
+            ev          = SAFTTestEvaluation(set1,set2)
+
+            print("Evaluating TTest:")
+            print("\tSet 1: %s" % set1)
+            print("\tSet 2: %s" % set2)
+            print("\tConfidence Value: %f" % ev.confidence)
+
+            result  = ev.Evaluate()
+
+            if(result):
+                print(scolors.SOKGREEN+"TTest passed"+scolors.SENDC)
+            else:
+                print(scolors.SFAIL+"TTest failed"+scolors.SENDC)
+
+            fig = ev.make_graph()
+            fig.show()
 
 
     def do_disconnect(self, args):

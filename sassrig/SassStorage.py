@@ -13,7 +13,6 @@ import logging as log
 from tqdm import tqdm
 
 from .SassTrace     import *
-from .SassStorage   import *
 
 SAMPLE_ENCODING_F4 = b"\x14"
 
