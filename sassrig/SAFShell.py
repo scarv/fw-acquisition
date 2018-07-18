@@ -20,6 +20,11 @@ class scolors:
     SUNDERLINE  = '\033[4m'
     SWARNING    = '\033[93m'
 
+
+def normal_filepath(p):
+    return os.path.abspath(os.path.expandvars(os.path.expanduser(p)))
+
+
 class SAFShell(cmd.Cmd):
     """
     A wrapper around the cmd.Cmd class which implements a basic shell for
@@ -67,6 +72,14 @@ class SAFShell(cmd.Cmd):
             return False
         else:
             return True
+
+
+    def emptyline(self):
+        """
+        Override default behaviour. Does nothing if the prompt gets an
+        empty line as input.
+        """
+        pass
 
 
     def do_scope_open(self, args):
@@ -286,8 +299,8 @@ class SAFShell(cmd.Cmd):
             return
 
         numtraces, set1_file, set2_file = args
-        set1_file = os.path.abspath(os.path.expanduser(os.path.expandvars(set1_file)))
-        set2_file = os.path.abspath(os.path.expanduser(os.path.expandvars(set2_file)))
+        set1_file = normal_filepath(set1_file)
+        set2_file = normal_filepath(set2_file)
         numtraces = int(numtraces)
 
         if(self.__check_comms() == False):
@@ -330,20 +343,26 @@ class SAFShell(cmd.Cmd):
         Arguments:
         set1    - Filepath of first trace set with all the same message
         set2    - Filepath of second trace set with uniform random message
+        figpath - Filepath to write the graph of traces too.
         """
         args = shlex.split(args)
-        if(len(args) != 2):
+        if(not len(args) in [2,3]):
     
-            print("evaluate_ttest expects two arguments!")
+            print("evaluate_ttest expects two or three arguments!")
             print(" Got %s" % str(args))
 
         else:
-            set1, set2  = args
+            set1 = args[0]
+            set2 = args[1]
+            figpath = None
+            if(len(args) == 3):
+                figpath = args[2]
         
-            set1 = os.path.abspath(os.path.expanduser(os.path.expandvars(set1)))
-            set2 = os.path.abspath(os.path.expanduser(os.path.expandvars(set2)))
+            set1    = normal_filepath(set1)
+            set2    = normal_filepath(set2)
+            figpath = normal_filepath(figpath)
             
-            ev          = SAFTTestEvaluation(set1,set2)
+            ev      = SAFTTestEvaluation(set1,set2)
 
             print("Evaluating TTest:")
             print("\tSet 1: %s" % set1)
@@ -357,8 +376,10 @@ class SAFShell(cmd.Cmd):
             else:
                 print(scolors.SFAIL+"TTest failed"+scolors.SENDC)
 
-            fig = ev.make_graph()
-            fig.show()
+            if(figpath != None):
+                print("Saving graphs to %s" % figpath)
+                fig = ev.make_graph()
+                fig.savefig(figpath)
 
 
     def do_disconnect(self, args):
