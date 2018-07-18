@@ -113,25 +113,19 @@ class SAFTTestEvaluation(object):
         """
         fig = plt.figure()
 
-        plt.subplot(4,1,1)
+        plt.subplot(3,1,1)
         plt.plot(self.set1_avg, linewidth=0.25)
         plt.ylabel("Power")
         plt.xlabel("Time")
-        plt.title("Set 1 Average Trace",fontsize=11)
+        plt.title("Set 1 Average Trace",fontsize= 9)
 
-        plt.subplot(4,1,2)
+        plt.subplot(3,1,2)
         plt.plot(self.set2_avg, linewidth=0.25)
         plt.ylabel("Power")
         plt.xlabel("Time")
-        plt.title("Set 2 Average Trace",fontsize=11)
+        plt.title("Set 2 Average Trace",fontsize= 9)
 
-        plt.subplot(4,1,3)
-        plt.plot(self.set1_avg-self.set2_avg, linewidth=0.25)
-        plt.ylabel("Power")
-        plt.xlabel("Time")
-        plt.title("Difference of average traces: set1 - set2",fontsize=11)
-
-        plt.subplot(4,1,4)
+        plt.subplot(3,1,3)
         plt.plot(self.ttrace, linewidth=0.25)
         plt.plot([ self.confidence]*len(self.ttrace), linewidth=0.25,
             color="red")
@@ -139,7 +133,7 @@ class SAFTTestEvaluation(object):
             color="red")
         plt.ylabel("Leakage")
         plt.xlabel("Time")
-        plt.title("T-Statistic Trace",fontsize=11)
+        plt.title("T-Statistic Trace",fontsize= 9)
 
         plt.tight_layout(pad=0)
 
