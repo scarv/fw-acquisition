@@ -1,12 +1,14 @@
 
+import os
 import sys
 import cmd
 import shlex
 import serial
 
-from .SassComms import SassComms
-from .SassScope import SassScope
-from .SAFTTestCapture import SAFTTestCapture
+from .SassComms             import SassComms
+from .SassScope             import SassScope
+from .SAFTTestCapture       import SAFTTestCapture
+from .SAFTTestEvaluation    import SAFTTestEvaluation
 
 class scolors:
     SBOLD       = '\033[1m'
@@ -284,6 +286,8 @@ class SAFShell(cmd.Cmd):
             return
 
         numtraces, set1_file, set2_file = args
+        set1_file = os.path.abspath(os.path.expanduser(os.path.expandvars(set1_file)))
+        set2_file = os.path.abspath(os.path.expanduser(os.path.expandvars(set2_file)))
         numtraces = int(numtraces)
 
         if(self.__check_comms() == False):
@@ -318,6 +322,43 @@ class SAFShell(cmd.Cmd):
             del cap
             print("TTest Capture Finished")
 
+
+    def do_evaluate_ttest(self, args):
+        """
+        Run a t-test on pre-captured trace sets.
+        
+        Arguments:
+        set1    - Filepath of first trace set with all the same message
+        set2    - Filepath of second trace set with uniform random message
+        """
+        args = shlex.split(args)
+        if(len(args) != 2):
+    
+            print("evaluate_ttest expects two arguments!")
+            print(" Got %s" % str(args))
+
+        else:
+            set1, set2  = args
+        
+            set1 = os.path.abspath(os.path.expanduser(os.path.expandvars(set1)))
+            set2 = os.path.abspath(os.path.expanduser(os.path.expandvars(set2)))
+            
+            ev          = SAFTTestEvaluation(set1,set2)
+
+            print("Evaluating TTest:")
+            print("\tSet 1: %s" % set1)
+            print("\tSet 2: %s" % set2)
+            print("\tConfidence Value: %f" % ev.confidence)
+
+            result  = ev.Evaluate()
+
+            if(result):
+                print(scolors.SOKGREEN+"TTest passed"+scolors.SENDC)
+            else:
+                print(scolors.SFAIL+"TTest failed"+scolors.SENDC)
+
+            fig = ev.make_graph()
+            fig.show()
 
 
     def do_disconnect(self, args):
