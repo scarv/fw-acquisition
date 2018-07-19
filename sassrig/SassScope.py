@@ -146,6 +146,38 @@ class SassScope:
         plt.close()
         return sample_count
 
+    def ConfigureTrigger(self, channel, threshold, direction, timeout):
+        """
+        Configure the supplied channel as a trigger signal for the scope.
+
+        :param str channel:
+        :param float threshold:
+        :param str direction: Must be "Rising" or "Falling"
+        :param float timeout: Timeout in miliseconds waiting for a trigger.
+        """
+        self.scope.setSimpleTrigger(
+            channel,
+            threshold,
+            direction,
+            timeout
+        )
+        
+
+    def ConfigureChannel(self, channel, vrange, coupling):
+        """
+        Configure a single channel with the specified coupling and
+        voltage range.
+        
+        :param str channel:
+        :param float vrange: +- voltage range of this channel
+        :param str coupling: "AC" or "DC"
+        """
+        self.scope.setChannel(
+            channel     = channel,
+            coupling    = coupling,
+            VRange      = vrange
+        )
+
     
     def ConfigureScope(self):
         """
@@ -187,11 +219,11 @@ class SassScope:
         log.info(" - Trigger Direction: %s" % self.trigger_direction)
         log.info(" - Trigger Timeout:   %d ms" % self.trigger_timeout)
         
-        self.scope.setSimpleTrigger(
+        self.ConfigureTrigger(
             self.trigger_channel,
-            threshold_V = self.trigger_threshold,
-            direction   = self.trigger_direction,
-            timeout_ms  = self.trigger_timeout
+            self.trigger_threshold,
+            self.trigger_direction,
+            self.trigger_timeout
         )
 
 

@@ -49,7 +49,9 @@ def main():
 
             for line in fh.readlines():
                 
-                print(">> %s" % line.rstrip("\n"))
+                toprint = line.rstrip("\n")
+
+                print(">> %s" % toprint)
 
                 if(line[0] == "#"):
                     pass

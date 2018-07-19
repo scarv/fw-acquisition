@@ -16,7 +16,7 @@ class SAFTTestCapture(object):
     """
 
 
-    def __init__(self,comms, scope, num_traces=10000):
+    def __init__(self,comms, scope, num_traces=10000, trace_channel="A"):
         """
         Create a new TTest Capture object.
 
@@ -24,6 +24,7 @@ class SAFTTestCapture(object):
             target device.
         :param SassScope scope: The oscilliscope object to get traces from.
         :param int num_traces: The number of traces overall to capture.
+        :param str trace_channel: Which scope channel gets put into the trace files.
         """
 
         self.comms       = comms
@@ -31,6 +32,7 @@ class SAFTTestCapture(object):
         self.scope       = scope
         
         self.num_traces  = num_traces
+        self.trace_channel = trace_channel
 
         self.set1        = SassStorage()
         self.set2        = SassStorage()
@@ -74,7 +76,7 @@ class SAFTTestCapture(object):
 
             self.scope.WaitForReady()
 
-            tracedata = self.scope.GetData(self.scope.sample_channel)
+            tracedata = self.scope.GetData(self.trace_channel)
 
             if(tracedata[0] == None):
                 dropped_traces += 1

@@ -45,9 +45,10 @@ class SAFShell(cmd.Cmd):
         """
         cmd.Cmd.__init__(self)
 
-        self.comms      = None
-        self.scope      = None
-        self.exit_shell = False
+        self.comms          = None
+        self.scope          = None
+        self.exit_shell     = False
+        self.trace_channel  = "A"
 
     def __check_comms(self):
         """
@@ -108,6 +109,70 @@ class SAFShell(cmd.Cmd):
             print("\tSample freq : %f" % self.scope.sample_frequency)
             print("\tSample range: %f" % self.scope.sample_range)
 
+
+    def do_scope_cfg_trigger(self, args):
+        """
+        Configure a scope channel as a trigger based on the supplied parameters
+
+        Arguments:
+        - Channel: {A,B,C,D}
+        - Timeout:  Milliseconds to wait until the trigger aborts
+        - Threshold: Value at which the trigger fires.
+        - Direction: {Rising, Falling}
+        """
+        args = shlex.split(args)
+
+        if(len(args) != 4):
+            print("scope_cfg_trigger expects 4 arguments! Got %d"%len(args))
+
+        elif(not self.__check_scope()):
+            print("No active scope connection. Cannot configure trigger")
+
+        else:
+            channel, timeout, threshold, direction = args
+            timeout     = int(timeout)
+            threshold   = float(threshold)
+            self.scope.ConfigureTrigger(channel, threshold, direction, timeout)
+            print("Configured channel %s as a %s trigger with threshold %f" %(
+                channel, direction, threshold))
+
+
+    def do_scope_cfg_channel(self, args):
+        """
+        Configure a single scope channel based on the supplied parameters.
+
+        Arguments:
+        - Channel: {A,B,C,D}
+        - Range:
+        - Coupling: {DC, AC}
+        """
+        args = shlex.split(args)
+
+        if(len(args) != 3):
+            print("scope_cfg_channel expects 3 arguments! Got %d"%len(args))
+
+        elif(not self.__check_scope()):
+            print("No active scope connection. Cannot configure trigger")
+
+        else:
+            channel, srange, coupling = args
+            srange = float(srange)
+            self.scope.ConfigureChannel(channel, srange, coupling)
+
+    def do_scope_cfg_trace_channel(self, args):
+        """
+        Print or set the scope channel which is extracted and put into
+        trace files.
+        """
+        args = shlex.split(args)
+
+        if(len(args) == 0):
+            print(self.trace_channel)
+        elif(len(args) == 1):
+            self.trace_channel = args[0]
+            print("Trace channel is now '%s'" % (self.trace_channel))
+        else:
+            print("Command expects 0 or 1 arguments. Got %d." % len(args))
 
     def do_scope_close(self, args):
         """
@@ -315,7 +380,8 @@ class SAFShell(cmd.Cmd):
             
             print("Capturing ttest trace sets...")
             
-            cap = SAFTTestCapture(self.comms,self.scope,num_traces=numtraces)
+            cap = SAFTTestCapture(self.comms,self.scope,num_traces=numtraces,
+                trace_channel = self.trace_channel)
 
             print("Trace sets key: %s" % cap.key.hex())
             print("Set1 Message: %s" % cap.set1_msg.hex())
