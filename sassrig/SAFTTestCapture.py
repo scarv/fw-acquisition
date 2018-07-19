@@ -37,8 +37,10 @@ class SAFTTestCapture(object):
         self.set1        = SassStorage()
         self.set2        = SassStorage()
 
-        self.key         = self.edec.GenerateKeyBits(size   = 16)
-        self.set1_msg    = self.edec.GenerateMessage(length = 16)
+        # Constants taken from "A testing methodology for side-channel
+        # resistance validation" By Goodwill et al.
+        self.key         = bytes.fromhex("0123456789abcdef123456789abcdef0")
+        self.set1_msg    = bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890")
 
     def TotalTraces(self):
         """
