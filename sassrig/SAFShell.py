@@ -7,6 +7,8 @@ import serial
 
 from .SassComms             import SassComms
 from .SassScope             import SassScope
+from .SassAttack            import SassAttack
+from .SassAttack            import SassAttackArgs
 from .SAFTTestCapture       import SAFTTestCapture
 from .SAFTTestEvaluation    import SAFTTestEvaluation
 
@@ -446,6 +448,42 @@ class SAFShell(cmd.Cmd):
                 print("Saving graphs to %s" % figpath)
                 fig = ev.make_graph()
                 fig.savefig(figpath)
+
+
+    def do_cpa_attack(self, args):
+        """
+        Run a CPU attack on a trace set.
+
+        Setting from=0, to=-1 will examine the whole trace.
+
+        arguments:
+        -   traceset:   The trace set to load and attack
+        -   from:       Start from this sample
+        -   to:         Stop at this sample
+        -   graph:      Where to save the CPA analysis figures too.
+        """
+
+        args = shlex.split(args)
+
+        if(not len(args) == 4):
+            
+            print("Command expects two arguments. Got %d."%len(args))
+
+        else:
+            
+            attack_args   = SassAttackArgs()
+            attack_args.isolate_from = int(args[1])
+            attack_args.isolate_to   = int(args[2])
+            
+            attack = SassAttack(attack_args, normal_filepath(args[0]))
+
+            fig = attack.run()
+
+            print("Saving figure: %s" % normal_filepath(args[3]))
+            fig.savefig(args[3])
+            fig.clf()
+            del fig
+            del attack
 
 
     def do_disconnect(self, args):

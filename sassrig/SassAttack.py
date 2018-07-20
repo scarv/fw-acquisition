@@ -54,6 +54,13 @@ class KeyEstimate:
     def __str__(self):
         return "%d %s %f" % (self.byte,hex(self.value),self.confidence)
 
+class SassAttackArgs(object):
+    def __init__(self):
+        self.isolate_from = 0
+        self.isolate_to   = -1
+        self.bin_traces   = False
+        self.average_correlations = False
+        self.show_correlations  = False
 
 class SassAttack:
     """
@@ -184,7 +191,7 @@ class SassAttack:
         
         return np.array([averages[i] for i in bins])
         
-    def getCandidateForKeyByte(self, keybyte, keylen):
+    def getCandidateForKeyByte(self, keybyte, keylen, fig):
         """
         Responsible for running an attack on a single key byte, where
         0 <= keybyte <=keylen 
@@ -223,7 +230,6 @@ class SassAttack:
         R = np.abs(self.computeCorrelation(np.transpose(H),np.transpose(T)))
         log.debug("Shape of R: %s" % str(R.shape))
 
-        plt.figure(1)
         plt.subplot(4,4,keybyte+1)
         plt.ylim([0.0,0.1])
         plt.plot(R,linewidth = 0.25)
@@ -237,7 +243,7 @@ class SassAttack:
 
     def run(self):
         """
-        Run the full attack
+        Run the full attack. Return the grah of results.
         """
         log.info("Running attack on trace file: %s" % self.tracefile)
 
@@ -256,32 +262,32 @@ class SassAttack:
 
         pb = tqdm(range(0,16))
         pb.set_description("Guessing Key Bytes")
+        fig=plt.figure()
         for i in pb:
-            keybytes[i] = self.getCandidateForKeyByte(i,16)
+            keybytes[i] = self.getCandidateForKeyByte(i,16, fig)
 
             keyguess = [k.value for k in keybytes]
             keyguess = bytearray(keyguess).hex()
 
-            fig=plt.figure(1)
-            fig.suptitle("Attacking %s - keyguess=%s" %(
-                self.tracefile,
-                keyguess
-            ),fontsize=11,y=0.995)
-            plt.tight_layout()
-            plt.draw()
-
-            if(self.args.show_correlations):
-                plt.pause(0.001)
+            pb.set_description("Current Guess: %s"%keyguess)
 
 
-        fig = plt.figure(1)
+        fig.suptitle("Attacking %s - keyguess=%s" %(
+            self.tracefile,
+            keyguess
+        ),fontsize=11,y=0.995)
+
+        plt.tight_layout()
+        plt.draw()
+        
+
         fig.set_size_inches(14,14)
-        print("Saving figure: %s" % self.tracefile+".png")
-        fig.savefig(self.tracefile+".png")
+
         if(self.args.show_correlations):
             plt.ioff()
-        fig.clf()
 
         print("Final key guess: %s" % [hex(k.value) for k in keybytes])
+
+        return fig
 
 
