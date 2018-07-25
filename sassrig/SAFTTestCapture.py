@@ -5,8 +5,7 @@ import numpy as np
 
 from tqdm import tqdm
 
-from .SassTrace      import SassTrace
-from .SassStorage    import SassStorage
+from .SAFTraceSet    import SAFTraceSet
 from .SassEncryption import SassEncryption
 
 class SAFTTestCapture(object):
@@ -34,8 +33,8 @@ class SAFTTestCapture(object):
         self.num_traces  = num_traces
         self.trace_channel = trace_channel
 
-        self.set1        = SassStorage()
-        self.set2        = SassStorage()
+        self.set1        = SAFTraceSet()
+        self.set2        = SAFTraceSet()
 
         # Constants taken from "A testing methodology for side-channel
         # resistance validation" By Goodwill et al.
@@ -85,13 +84,11 @@ class SAFTTestCapture(object):
 
             elif(rbit):
                 # Add to set 1
-                t = SassTrace(tracedata, self.key, current_msg)
-                self.set1.AddTrace(t)
+                self.set1.AddTrace(current_msg,tracedata)
 
             else:
                 # Add to set 2
-                t = SassTrace(tracedata, self.key, current_msg)
-                self.set2.AddTrace(t)
+                self.set2.AddTrace(current_msg,tracedata)
 
         return dropped_traces
 

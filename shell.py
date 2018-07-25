@@ -6,6 +6,7 @@ import re
 import sys
 import argparse
 import logging as log
+import traceback
 
 import sassrig
 
@@ -64,6 +65,7 @@ def main():
 
                     except Exception as e:
                         print("Exception Occured: %s" % str(e))
+                        print(traceback.format_exc())
                         sys.exit(1)
 
 
@@ -74,6 +76,7 @@ def main():
             shell.cmdloop()
         except Exception as e:
             print("Exception Occured: %s" % str(e))
+            print(traceback.format_exc())
             sys.exit(1)
 
     sys.exit(0)

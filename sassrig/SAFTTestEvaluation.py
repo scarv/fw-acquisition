@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
-from .SassTrace      import SassTrace
-from .SassStorage    import SassStorage
+from .SAFTraceSet    import SAFTraceSet
 from .SassEncryption import SassEncryption
 
 class SAFTTestEvaluation(object):
@@ -62,12 +61,10 @@ class SAFTTestEvaluation(object):
             (set size, average trace, standard deviation)
         """
 
-        ts      = SassStorage(trs_file = path)
+        ts      = SAFTraceSet.LoadTRS(path)
         
         # Matrix of traces
-        trace_m = np.array(
-            [t.data for t in ts.traces]
-        )
+        trace_m = ts.traces
 
         t_len = len(ts)
 
