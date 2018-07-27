@@ -5,7 +5,7 @@ import numpy as np
 
 from tqdm import tqdm
 
-from .SAFTraceSet    import SAFTraceSet
+from .SAFTraceWriter import SAFTraceWriter
 from .SassEncryption import SassEncryption
 
 class SAFTTestCapture(object):
@@ -33,8 +33,8 @@ class SAFTTestCapture(object):
         self.num_traces  = num_traces
         self.trace_channel = trace_channel
 
-        self.set1        = SAFTraceSet()
-        self.set2        = SAFTraceSet()
+        self.set1        = SAFTraceWriter()
+        self.set2        = SAFTraceWriter()
 
         # Constants taken from "A testing methodology for side-channel
         # resistance validation" By Goodwill et al.

@@ -7,5 +7,6 @@ from .SassComms      import *
 from .SassEncryption import *
 from .SassScope      import *
 from .SAFTraceSet    import *
+from .SAFTraceWriter import *
 from .SAFAttackCPA   import *
 from .SAFShell       import SAFShell
