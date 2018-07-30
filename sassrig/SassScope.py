@@ -80,21 +80,28 @@ class SassScope:
         try:
             tr = self.scope.getDataV(channel, exceptOverflow=False)
             tr = array.array("f", tr)
+            if(len(tr) > self.sample_count):
+                tr = tr[0:self.sample_count]
             self.no_of_samples = self.scope.noSamples
 
             return tr
         except Exception as e:
-            #log.error("Channel %s" % channel)
-            #log.error(str(e))
+            print("Channel %s" % channel)
+            print(str(e))
             return [None,e]
 
     
-    def FindBestSampleRate(self,comms,cpu_freq,graph=False,
-        trigger_threshold = 0.5):
+    def FindBestSampleRate(self,comms,cpu_freq,
+            trigger_threshold = 0.5,
+            trigger_channel="B"):
         """
         Tries to find the best sample rate to include the entire
         AES process. Returns the number of samples which should be
         captured to get the entire operation being anaylsed.
+
+        :param int cpu_freq: Frequency in Hz of target device
+        :param float trigger_threshold: Voltage we should trigger at.
+        :param str trigger_channel: Which channel of the scope is the trigger?
         """
         resolution  = '8'
         sample_freq = 2 * cpu_freq
@@ -103,8 +110,6 @@ class SassScope:
         
         sample_count = 1000
         finished     = False
-
-        plt.ion()
 
         while(not finished):
             actualSampleFreq, maxSamples = \
@@ -116,8 +121,7 @@ class SassScope:
             self.StartCapture()
             comms.doEncrypt()
             self.WaitForReady()
-            power   = self.GetData("A")
-            trigger = self.GetData("B")
+            trigger = self.GetData(trigger_channel)
             
             trigger = trigger / np.max(trigger)
             idx1    = trigger[:] >  trigger_threshold
@@ -126,24 +130,14 @@ class SassScope:
             trigger[idx0] = 0.0
 
             if(trigger[-1] == 1.0):
-                finished = False
+                finished      = False
                 sample_count += 1000
             else:
                 finished = True
+        
+        # Put the resolution back!
+        self.scope.setResolution('12')
 
-            if(graph):
-                plt.figure(1)
-                plt.clf()
-                plt.subplot(2,1,1)
-                plt.plot(power,linewidth=0.25)
-                plt.subplot(2,1,2)
-                plt.plot(trigger,linewidth=0.25)
-                plt.show()
-                plt.draw()
-                plt.pause(0.001)
-
-        plt.clf()
-        plt.close()
         return sample_count
 
     def ConfigureTrigger(self, channel, threshold, direction, timeout):
