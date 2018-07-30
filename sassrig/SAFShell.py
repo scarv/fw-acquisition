@@ -17,6 +17,7 @@ from .SAFAttackCPA          import SAFAttackArgs
 from .SAFTTestCapture       import SAFTTestCapture
 from .SAFTTestEvaluation    import SAFTTestEvaluation
 from .SAFTraceWriter        import SAFTraceWriter
+from .SAFTraceSet           import SAFTraceSet
 from .SassEncryption        import SassEncryption
 
 class scolors:
@@ -552,9 +553,33 @@ class SAFShell(cmd.Cmd):
             )
 
             print("Writing tracefile: %s" % set_file)
-            traces.description = "key: %s" % key.hex()
+            traces.trace_description = "key: %s" % key.hex()
             traces.DumpTRS(set_file)
 
+    def do_trace_info(self,args):
+        """
+        Print information about a trace file.
+
+        Arguments:
+        - filepath
+        """
+        args = shlex.split(args)
+        if(len(args) != 1):
+            print("capture_ttest expects 3 arguments")
+            return
+
+        tpath = args[0]
+        tpath = normal_filepath(tpath)
+
+        tfile = SAFTraceSet.LoadTRS(tpath, infoOnly=True)
+
+        print("%s" % tpath)
+        print("Number of traces     : %d" % tfile.num_traces)
+        print("Length of trace      : %d" % tfile.trace_length)
+        print("Length of plaintext  : %d" % tfile.plaintext_length)
+        print("Data Encoding        : %d" % int.from_bytes(tfile.coding_type,"little"))
+        print("Trace Description    : ")
+        print("\t", tfile.trace_description.replace("\n","\n\t"))
 
     def do_capture_ttest(self, args):
         """
