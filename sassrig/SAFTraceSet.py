@@ -207,7 +207,6 @@ class SAFTraceSet:
                 elif(ctrlcode == b"\x42"):
                     # Samples per trace
                     tr.trace_length= int.from_bytes(fh.read(4),"little")
-                    print(tr.trace_length)
 
                 elif(ctrlcode == b"\x43"):
                     # Sample coding type (float, 4 bytes each)
@@ -241,7 +240,7 @@ class SAFTraceSet:
 
             if(infoOnly):
                 # We only want to load the headers.
-                return
+                return tr
 
             pb = tqdm(range(0,tr.num_traces))
             pb.set_description("Loading Traces")
