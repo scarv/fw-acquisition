@@ -5,12 +5,19 @@ import cmd
 import shlex
 import serial
 
+import pyaes
+
+from tqdm import tqdm
+
 from .SassComms             import SassComms
+from .SassComms             import SassCommsException
 from .SassScope             import SassScope
 from .SAFAttackCPA          import SAFAttackCPA
 from .SAFAttackCPA          import SAFAttackArgs
 from .SAFTTestCapture       import SAFTTestCapture
 from .SAFTTestEvaluation    import SAFTTestEvaluation
+from .SAFTraceWriter        import SAFTraceWriter
+from .SassEncryption        import SassEncryption
 
 class scolors:
     SBOLD       = '\033[1m'
@@ -51,6 +58,7 @@ class SAFShell(cmd.Cmd):
         self.scope          = None
         self.exit_shell     = False
         self.trace_channel  = "A"
+        self.trigger_channel= "B"
 
     def __check_comms(self):
         """
@@ -135,6 +143,7 @@ class SAFShell(cmd.Cmd):
             timeout     = int(timeout)
             threshold   = float(threshold)
             self.scope.ConfigureTrigger(channel, threshold, direction, timeout)
+            self.trigger_channel = channel
             print("Configured channel %s as a %s trigger with threshold %f" %(
                 channel, direction, threshold))
 
@@ -246,7 +255,7 @@ class SAFShell(cmd.Cmd):
                 print("ERROR: %s" % str(e))
             except serial.SerialTimeoutException:
                 print("ERROR: Port response timeout")
-                self.do_disconnect()
+                self.do_disconnect(None)
 
 
     def do_encrypt(self, arguments):
@@ -349,6 +358,202 @@ class SAFShell(cmd.Cmd):
 
             key = self.comms.doGetKey()
             print("%s"%key.hex())
+
+    def do_set_samples_per_trace(self, args):
+        """
+        Set the maximum number of samples to record per trace.
+        Arguments:
+        - int samples - samples per trace to record.
+        """
+
+        args = shlex.split(args)
+        if(len(args) != 1):
+            print("set_samples_per_trace expects 1 argument")
+            return
+
+        if(self.__check_scope() == False):
+
+            print("No active oscilliscipe connection.")
+
+        else:
+
+            self.scope.sample_count = int(args[0])
+            print("Samples per trace: %d" % self.scope.sample_count)
+    
+    def do_factor_samples_per_trace(self, args):
+        """
+        Multiply the number of samples per trace by some N <1.0 so that we
+        only capture and store some fraction of the whole trace.
+        Arguments:
+        - float factor - Percentage of current samples per trace to keep.
+        """
+
+        args = shlex.split(args)
+        if(len(args) != 1):
+            print("set_samples_per_trace expects 1 argument")
+            return
+
+        if(self.__check_scope() == False):
+
+            print("No active oscilliscipe connection.")
+
+        else:
+
+            print("Previous samples per trace: %d" % self.scope.sample_count)
+            self.scope.sample_count *= float(args[0])
+            self.scope.sample_count = int(self.scope.sample_count)
+            print("New samples per trace: %d" % self.scope.sample_count)
+
+        
+
+    def do_find_sample_rate(self,args):
+        """
+        Tries to find the best sample rate and count for capturing traces
+        given a particular operating frequency for the target.
+
+        Arguments:
+        - int cpu_freq - Target device frequency in Hz
+        - float trig_threshold - Threshold of the trigger signal
+        - str trig_channel - Scope channel acting as the trigger.
+        """
+        args = shlex.split(args)
+        if(len(args) != 3):
+            print("find_sample_rate expects 3 arguments")
+            return
+
+        cpu_freq, trig_threshold, trig_channel = args
+        cpu_freq        = int(float(cpu_freq))
+        trig_threshold  = float(trig_threshold)
+
+        print("Searching for best sample rate with:")
+        print("- Target frequency:  %dHz" % cpu_freq)
+        print("- Trigger threshold: %fV" % trig_threshold)
+        print("- Scope Channel:     %s" % trig_channel)
+        print("Working...")
+        
+        if(self.__check_comms() == False):
+        
+            print("No currently active connection.")
+
+        elif(self.__check_scope() == False):
+
+            print("No active oscilliscipe connection.")
+
+        else:
+
+            scount = self.scope.FindBestSampleRate(self.comms, cpu_freq,
+                trig_threshold,trig_channel)
+            
+            print("Sample rate found: %fHz" % self.scope.sample_frequency)
+            print("Samples per trace: %d" % self.scope.sample_count)
+
+
+    def capture_traces(num_traces, scope, comms, key):
+        """
+        Capture the supplied number of traces and put them in storage.
+        """
+        storage         = SAFTraceWriter()
+        
+        pb = tqdm(range(0,num_traces))
+        pb.set_description("Capturing Trace Set")
+        
+        edec = SassEncryption()
+        comms.doSetKey(key)
+
+        for i in pb:
+            
+            try:
+                message         = edec.GenerateMessage()
+
+                comms.doSetMsg(message)
+
+                scope.StartCapture()
+                comms.doEncrypt()
+                scope.WaitForReady()
+                
+                data  = scope.GetData(scope.sample_channel)
+                storage.AddTrace(message,data)
+
+                if(i%20 == 0) :
+                    # Every 20'th trace, check we get the right values.
+                    SAFShell.check_encryption_correctness(comms,edec)
+                    # Put the key back to how it should be.
+                    comms.doSetKey(key)
+
+            except SassCommsException as ex:
+                recovered = False
+                for i in range(0, 100):
+                    if(comms.doHelloWorld()):
+                        recovered = True
+                        break
+                if(not recovered):
+                    raise Exception("Could not recover from comms error")
+
+        return storage
+
+
+    def check_encryption_correctness(comms, edec):
+        """
+        Make sure we get the right answer when encrypting and decrypting.
+        """
+        key                 = edec.GenerateKeyBits()
+        plaintext           = edec.GenerateMessage()
+        aes                 = pyaes.AESModeOfOperationECB(key)
+        oracle_ciphertext   = aes.encrypt(plaintext)
+
+        comms.doSetKey(key)
+        comms.doSetMsg(plaintext)
+        comms.doEncrypt()
+        test_ciphertext     = comms.doGetCipher()
+
+        if(oracle_ciphertext != test_ciphertext):
+            print("Encypt error: Oracle = %s, Test = %s" % (
+                oracle_ciphertext.hex(), test_ciphertext.hex()))
+            return False
+        else:
+            return True
+
+    def do_capture_traces(self, args):
+        """
+        Capture a sets of traces
+
+        Expects three arguments:
+        - num_traces        - How many to cpautre
+        - set_tracefile     - Where to store them
+        """
+        args = shlex.split(args)
+        if(len(args) != 2):
+            print("capture_traces expects 2 arguments")
+            return
+        
+        numtraces, set_file = args
+        numtraces = int(numtraces)
+        set_file  = normal_filepath(set_file)
+        
+        if(self.__check_comms() == False):
+        
+            print("No currently active connection.")
+
+        elif(self.__check_scope() == False):
+
+            print("No active oscilliscipe connection.")
+
+        else:
+            
+            print("Capturing trace set...")
+            edec = SassEncryption()
+            key  = edec.GenerateKeyBits(16)
+
+            print("Key: %s" % key.hex())
+            print("Samples per trace: %d" % self.scope.sample_count)
+
+            traces = SAFShell.capture_traces(
+                numtraces, self.scope, self.comms,key
+            )
+
+            print("Writing tracefile: %s" % set_file)
+            traces.description = "key: %s" % key.hex()
+            traces.DumpTRS(set_file)
 
 
     def do_capture_ttest(self, args):
