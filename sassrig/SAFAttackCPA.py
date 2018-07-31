@@ -7,9 +7,11 @@ This file is used to attack traces we have captured using the flow
 import os
 import gc
 import sys
+import time
+import math
 import logging as log
 
-from multiprocessing import Pool
+import multiprocessing as mp
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,117 +56,155 @@ class KeyEstimate:
     def __str__(self):
         return "%s %s %s" % (str(self.byte),str(self.value),str(self.confidence))
 
-class SAFAttackArgs(object):
-    def __init__(self):
-        self.isolate_from = 0
-        self.isolate_to   = -1
-        self.average_correlations = False
-        self.show_correlations  = False
 
-
-def hamming_weight(b):
+def hamming_weight(k):
     """
-    Return the hamming weight of the byte b.
+    Return the hamming weight of the low 8 bits of k
     """
-    return  (b & (0x1 << 0)) + \
-            (b & (0x1 << 1)) + \
-            (b & (0x1 << 2)) + \
-            (b & (0x1 << 3)) + \
-            (b & (0x1 << 4)) + \
-            (b & (0x1 << 5)) + \
-            (b & (0x1 << 6)) + \
-            (b & (0x1 << 7)) 
+    tr = (k & (0x1 << 0)) + \
+         (k & (0x1 << 1)) + \
+         (k & (0x1 << 2)) + \
+         (k & (0x1 << 3)) + \
+         (k & (0x1 << 4)) + \
+         (k & (0x1 << 5)) + \
+         (k & (0x1 << 6)) + \
+         (k & (0x1 << 7))
+    return tr
 
 class SAFAttackCPA:
     """
     Class containing everything we need to run an attack.
+
+    Notation:
+    - D - number of traces
+    - t - length of a trace
+    - N - length of a plaintext
+    - K - number of possible key guess value
+    - H - (D,K) matrix of power estimates
+    - T - (D,T) matrix of power traces
+    - P - (D,N) matrix of plaintext bytes
     """
 
 
-    def __init__(self, args,trace_file):
+    def __init__(self, trace_file):
         """
         Create a new attack class.
         """
-        self.args          = args
-        self.isolate_start = args.isolate_from
-        self.isolate_end   = args.isolate_to
+        self.isolate_start = 0
+        self.isolate_end   = -1
         self.tracefile     = trace_file
-
-    def _get_power_estimates(self, d):
-        """
-        :param byte d: Data byte index
-        """
-        tr = np.empty((self.storage.num_traces,256),dtype=np.float32)
         
-        # tr is (num_traces by 256) matrix
-        #   tr[x,y] = intermediate_value(message[x][d], y)
-        for x in range(0, self.storage.num_traces):
+        self._compute_H_time    = 0.0
+        self._compute_corr_time = 0.0
 
-            plaintext_byte = self.storage.plaintexts[x][d]
+    def _compute_power_estimate(self,msg_byte, key_byte):
+        return hamming_weight(sbox[msg_byte ^ key_byte])
 
-            for key_byte_guess in range(0, 255):
-                
-                intermediate_val = sbox[plaintext_byte ^ key_byte_guess]
 
-                tr[x,key_byte_guess] = float(hamming_weight(intermediate_val))
-
-        return tr
-
-    def getCandidateForKeyByte(self, keybyte ):
+    def _compute_H(self, plaintexts, byte):
         """
-        Responsible for running an attack on a single key byte
-
-        K = choices for key bytes (256)
-        T = samples per trace
-        D = number of traces / plaintexts.
-        """
+        Compute the power estimates matrix H for a given byte of the
+        key ``byte``
         
+        :param np.ndarray plaintexts: Array of plaintext elements (D,N) in 
+            size.
+        :param int byte: Which byte of the plaintexts to compute estimates
+            for.
+
+        :returns: an np.ndarray which is (D,K) in size of float32 values.
+        """
+        D = plaintexts.shape[0]
         K = 256
-        D = self.storage.num_traces
-        T = self.storage.trace_length
+
+        _start = time.perf_counter()
+
+        init = [[self._compute_power_estimate(plaintexts[d,byte], k) 
+                    for k in range(0,K)]
+                        for d in range(0,D)]
+
+        H = np.array(init, dtype=np.float32, order='C', copy=True)
+
+        assert(H.shape == (D,K)), "%s != (%d,%d)"%(H.shape,D,K)
+
+        self._compute_H_time = time.perf_counter() - _start
+
+        return H
+    
+    def _compute_corrolation_guess(self,H,T,i):
+        """
+        Given H and T, find and return the peak corrolation for key
+        guess i
+        """
+
+        t = T.shape[1]
         
-        # D x T  - 
-        mT = self.storage.traces[:,self.isolate_start:self.isolate_end]
+        col_H_avgs = np.mean(H,axis=1,dtype=np.float32)
+        col_T_avgs = np.mean(T,axis=0,dtype=np.float32)
 
-        sample_len = mT.shape[1]
-
-        # 256 power estimates per row.
-        # 1 row per sample
-        self.mH = self._get_power_estimates(keybyte) # D x K
-
-        # R.shape should be (K,T)
         
-        fig = plt.figure(2)
-        plt.clf()
+        col_H      = H[:,i]
 
-        for i in tqdm(range(0,K)):
+        #print("%s, %s, %s, %s" %
+        #    (str(col_H_avgs.shape),
+        #     str(col_T_avgs.shape),
+        #     str(col_H.shape     ),
+        #     str(T.shape)))
 
-            for j in range(0,sample_len):
+        col_H_avgs   -= col_H
+        col_H_sq_sum  = np.sum(col_H_avgs * col_H_avgs)
 
-                col_H = self.mH[:,i] - np.mean(self.mH[:,i])
-                col_T = mT[:,j] - np.mean(mT[:,j])
-
-                top = np.dot(col_H,col_T)
-
-                col_T *= col_T
-                col_H *= col_H
-
-                col_T = np.sum(col_T)
-                col_H = np.sum(col_H)
-
-                bot = np.sqrt(col_T * col_H)
-
-                self.R[i,j] = abs(top/bot)
-
-        plt.plot(self.R,linewidth=0.25)
-        plt.show()
-        plt.draw()
-        plt.pause(0.001)
-
-        candidateidx = np.unravel_index(np.argmax(self.R, axis=None), self.R.shape)
-
-        return KeyEstimate(keybyte,candidateidx[0])
+        max_r = 0.0
         
+        for j in range(0,t): 
+        
+            col_T   = T[:,j] - col_T_avgs[j]
+            
+            top     = np.dot(col_H_avgs, col_T)
+
+            col_T  *= col_T
+            col_T   = np.sum(col_T)
+
+            r = abs(top/(math.sqrt(col_T*col_H_sq_sum)))
+
+            if(r > max_r):
+                max_r = r
+
+        return max_r
+        
+
+    def _compute_corrolation(self, H, T, byte):
+        """
+        Compute the corrolation of power estimations and traces.
+
+        :param np.ndarray H: Power estimates matrix (D,K)
+        :param np.ndarray T: The traces (D,t)
+        :param int byte: Which byte of the key are we operating on?
+        """
+        K       = H.shape[1]
+        t       = T.shape[1]
+        r_size  = K * t
+            
+        n_procs     = 4
+        results     = None
+
+        with mp.Pool(processes = n_procs) as pool:
+
+            start = time.perf_counter()
+
+            tasks       = [(H,T,i) for i in range(0, K)]
+            
+            print("Waiting for jobs to finish...")
+            results = pool.starmap(
+                self._compute_corrolation_guess, tasks
+            )
+
+            pool.close()
+            pool.join()
+
+        self._compute_corr_time = time.perf_counter() - start
+        
+        return np.array(results)
+
 
     def run(self):
         """
@@ -173,25 +213,31 @@ class SAFAttackCPA:
 
         self.storage = SAFTraceSet.LoadTRS(self.tracefile)
 
-        print("Trace Set Description:")
-        print(self.storage.trace_description)
-        
-        keybytes = [KeyEstimate(0,0)] * 16
+        T  = self.storage.traces
+        K = 256
+        t = self.storage.trace_length
 
-        print("Trace length: %d"%self.storage.trace_length)
-        print("Num Traces:   %d"%self.storage.num_traces)
-        
-        self.R = np.empty((256,self.storage.trace_length), np.float64)
+        guesses = []
 
+        fig = plt.figure(1)
         plt.ion()
+
+        for byte in range(0, 16):
+            
+            print("Computing byte %d guess" % byte)
+            
+            H = self._compute_H(self.storage.plaintexts, byte)
+            print("- H compute time: %f" % self._compute_H_time)
+
+            R        = self._compute_corrolation(H,T,byte)
+            keyguess = np.argmax(R)
+
+            print("- Corr compute time: %f" % self._compute_corr_time)
+            print("- Byte %d keyguess: %s" %(byte,hex(keyguess)))
+
+            plt.plot(R)
+            plt.draw()
+            plt.pause(0.001)
+            plt.show()
         
-        print("Running...")
-        for k in tqdm(range(0,16)):
-            keybytes[k] = self.getCandidateForKeyByte( k)
-
         plt.ioff()
-
-        print("Final key guess: %s" % [str(k.value) for k in keybytes])
-
-        return None
-

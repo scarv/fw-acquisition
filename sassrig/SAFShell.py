@@ -13,7 +13,6 @@ from .SassComms             import SassComms
 from .SassComms             import SassCommsException
 from .SassScope             import SassScope
 from .SAFAttackCPA          import SAFAttackCPA
-from .SAFAttackCPA          import SAFAttackArgs
 from .SAFTTestCapture       import SAFTTestCapture
 from .SAFTTestEvaluation    import SAFTTestEvaluation
 from .SAFTraceWriter        import SAFTraceWriter
@@ -703,12 +702,10 @@ class SAFShell(cmd.Cmd):
 
         else:
             
-            attack_args   = SAFAttackArgs()
-            attack_args.isolate_from = int(args[1])
-            attack_args.isolate_to   = int(args[2])
+            attack = SAFAttackCPA(normal_filepath(args[0]))
+            attack.isolate_start = int(args[1])
+            attack.isolate_end   = int(args[2])
             
-            attack = SAFAttackCPA(attack_args, normal_filepath(args[0]))
-
             fig = attack.run()
 
 
