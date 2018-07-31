@@ -119,7 +119,7 @@ class SAFTraceSet:
         t_shape = (self._num_traces, self._trace_len)
         m_shape = (self._num_traces, self._plaintext_len)
 
-        self._traces     = np.empty(t_shape, dtype=np.float)
+        self._traces     = np.empty(t_shape, dtype=np.float32)
         self._plaintexts = np.empty(m_shape, dtype=np.int8)
 
 
@@ -144,6 +144,32 @@ class SAFTraceSet:
         self._tcounter += 1
 
 
+    def AggregatePerCycle(self, samples_per_cycle):
+        """
+        Transforms all of the traces such that each sample represents the total
+        *energy* consumed in a *single clock cycle*. As opposed to the
+        standard representation where each sample is the instantaneous energy
+        per clock cycle.
+
+        The transformation is done in-place. If the orginal traces are N long
+        and there are M samples per trace, then the final traces will be
+        N/M samples long. If M does not divide N, the remaining samples are
+        discarded.
+        """
+
+        new_len = int(self._trace_len / samples_per_cycle)
+
+        for t in tqdm(range(0, self._num_traces)):
+            for p in range(0, new_len):
+                start =  p    * new_len
+                end   = (p+1) * new_len
+                self._traces[t][p] = np.sum(self.traces[t,start:end])
+
+        # Discard the parts of the old traces no longer needed.
+        self._traces    = self._traces[:,0:new_len]
+        self._trace_len = new_len
+
+
     def DumpTRS(self,filepath):
         """
         Write out the collection of traces to the supplied filepath,
@@ -151,8 +177,8 @@ class SAFTraceSet:
         TRS Format
         """
 
-        num_traces = len(self.traces)
-        len_traces = self.trace_len
+        num_traces = self._num_traces
+        len_traces = self._trace_len
 
         with open(filepath,"wb") as fh:
             
@@ -175,9 +201,10 @@ class SAFTraceSet:
             fh.write(ta)
 
             fh.write(b"\x5f") # Trace block marker.
-            
-            towrite = np.concatenate((self._plaintexts,self._traces))
-            towrite.tofile(fh)
+        
+            for i in range(0, self.num_traces):
+                self._plaintexts[i].tofile(fh)
+                self._traces[i].tofile(fh)
 
 
     def LoadTRS(filepath, infoOnly = False):

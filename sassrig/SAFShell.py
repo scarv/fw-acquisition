@@ -554,6 +554,8 @@ class SAFShell(cmd.Cmd):
 
             print("Writing tracefile: %s" % set_file)
             traces.trace_description = "key: %s" % key.hex()
+            traces.trace_description += "\nSample freq: %fHz" % (
+                self.scope.sample_frequency)
             traces.DumpTRS(set_file)
 
     def do_trace_info(self,args):
@@ -708,6 +710,45 @@ class SAFShell(cmd.Cmd):
             attack = SAFAttackCPA(attack_args, normal_filepath(args[0]))
 
             fig = attack.run()
+
+
+    def do_trace_energy_aggregate(self, args):
+        """
+        Transforms all of the traces such that each sample represents the
+        total *energy* consumed in a *single clock cycle*. As opposed to the
+        standard representation where each sample is the instantaneous energy
+        per clock cycle.
+        
+        :todo: Finish implementing this.
+
+        Arguments:
+            - t_in  - Input trace set path
+            - t_out - Output trace set path
+            - samples_per_cycle - Number of samples per clock cycle.
+        """
+        args = shlex.split(args)
+
+        if(not len(args) == 3):
+            
+            print("Command expects three arguments. Got %d."%len(args))
+
+        else:
+
+            t_in, t_out, samples_per_cycle = args
+            samples_per_cycle = int(samples_per_cycle)
+            
+            traces = SAFTraceSet.LoadTRS(t_in)
+
+            original_trace_len = traces.trace_length
+            
+            print("Aggregating over %d samples")
+            traces.AggregatePerCycle(samples_per_cycle)
+
+            print("New trace length: %d" % traces.trace_length)
+
+            print("Writing traces to %s" % t_out)
+            traces.DumpTRS(t_out)
+            del traces
 
 
     def do_disconnect(self, args):

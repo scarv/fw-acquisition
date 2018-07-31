@@ -5,3 +5,4 @@ sphinx
 tqdm
 pyserial
 pyaes
+scipy
