@@ -122,21 +122,24 @@ class SAFAttackCPA:
         K = 256
         D = self.storage.num_traces
         T = self.storage.trace_length
-
+        
         # D x T  - 
         mT = self.storage.traces[:,self.isolate_start:self.isolate_end]
 
-        sample_len = self.isolate_end - self.isolate_start
+        sample_len = mT.shape[1]
 
         # 256 power estimates per row.
         # 1 row per sample
         self.mH = self._get_power_estimates(keybyte) # D x K
 
         # R.shape should be (K,T)
+        
+        fig = plt.figure(2)
+        plt.clf()
 
         for i in tqdm(range(0,K)):
 
-            for j in tqdm(range(0,sample_len)):
+            for j in range(0,sample_len):
 
                 col_H = self.mH[:,i] - np.mean(self.mH[:,i])
                 col_T = mT[:,j] - np.mean(mT[:,j])
@@ -153,7 +156,12 @@ class SAFAttackCPA:
 
                 self.R[i,j] = abs(top/bot)
 
-        candidateidx = np.unravel_index(np.argmax(R, axis=None), R.shape)
+        plt.plot(self.R,linewidth=0.25)
+        plt.show()
+        plt.draw()
+        plt.pause(0.001)
+
+        candidateidx = np.unravel_index(np.argmax(self.R, axis=None), self.R.shape)
 
         return KeyEstimate(keybyte,candidateidx[0])
         
@@ -162,8 +170,6 @@ class SAFAttackCPA:
         """
         Run the full attack. Return the grah of results.
         """
-
-        np.warnings.filterwarnings('ignore')
 
         self.storage = SAFTraceSet.LoadTRS(self.tracefile)
 
@@ -176,10 +182,14 @@ class SAFAttackCPA:
         print("Num Traces:   %d"%self.storage.num_traces)
         
         self.R = np.empty((256,self.storage.trace_length), np.float64)
+
+        plt.ion()
         
         print("Running...")
         for k in tqdm(range(0,16)):
             keybytes[k] = self.getCandidateForKeyByte( k)
+
+        plt.ioff()
 
         print("Final key guess: %s" % [str(k.value) for k in keybytes])
 
