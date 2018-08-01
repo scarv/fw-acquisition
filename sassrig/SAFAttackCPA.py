@@ -199,12 +199,18 @@ class SAFAttackCPA:
         return np.array(results)
 
 
-    def run(self):
+    def run(self, traces = None):
         """
         Run the full attack. Return the grah of results.
+
+        :param SAFTraceSet, None traces: The traces to attack or
+            None. If none, then try to load a trace set from self.tracefile
         """
 
-        self.storage = SAFTraceSet.LoadTRS(self.tracefile)
+        self.storage = traces
+
+        if(self.storage == None):
+            self.storage = SAFTraceSet.LoadTRS(self.tracefile)
 
         T  = self.storage.traces
         K = 256
