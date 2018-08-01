@@ -93,6 +93,7 @@ class SAFAttackCPA:
         self.isolate_start = 0
         self.isolate_end   = -1
         self.tracefile     = trace_file
+        self.num_threads   = 4
         
         self._compute_H_time    = 0.0
         self._compute_corr_time = 0.0
@@ -144,12 +145,6 @@ class SAFAttackCPA:
         
         col_H      = H[:,i]
 
-        #print("%s, %s, %s, %s" %
-        #    (str(col_H_avgs.shape),
-        #     str(col_T_avgs.shape),
-        #     str(col_H.shape     ),
-        #     str(T.shape)))
-
         col_H_avgs   -= col_H
         col_H_sq_sum  = np.sum(col_H_avgs * col_H_avgs)
 
@@ -184,16 +179,14 @@ class SAFAttackCPA:
         t       = T.shape[1]
         r_size  = K * t
             
-        n_procs     = 4
         results     = None
-
-        with mp.Pool(processes = n_procs) as pool:
+            
+        with mp.Pool(processes = self.num_threads) as pool:
 
             start = time.perf_counter()
 
             tasks       = [(H,T,i) for i in range(0, K)]
             
-            print("Waiting for jobs to finish...")
             results = pool.starmap(
                 self._compute_corrolation_guess, tasks
             )
@@ -222,22 +215,23 @@ class SAFAttackCPA:
         fig = plt.figure(1)
         plt.ion()
 
+        R = []
+
         for byte in range(0, 16):
             
-            print("Computing byte %d guess" % byte)
+            sys.stdout.write("Computing byte %d guess " % byte)
+            sys.stdout.flush()
             
             H = self._compute_H(self.storage.plaintexts, byte)
-            print("- H compute time: %f" % self._compute_H_time)
+            sys.stdout.write("- H time: %f " % self._compute_H_time)
+            sys.stdout.flush()
 
-            R        = self._compute_corrolation(H,T,byte)
-            keyguess = np.argmax(R)
+            byte_R   = self._compute_corrolation(H,T,byte)
+            keyguess = np.argmax(byte_R)
+            guesses.append(keyguess)
+            R.append(byte_R)
 
-            print("- Corr compute time: %f" % self._compute_corr_time)
+            sys.stdout.write("- Corr time: %f " % self._compute_corr_time)
             print("- Byte %d keyguess: %s" %(byte,hex(keyguess)))
 
-            plt.plot(R)
-            plt.draw()
-            plt.pause(0.001)
-            plt.show()
-        
-        plt.ioff()
+        return (R,bytes(guesses))

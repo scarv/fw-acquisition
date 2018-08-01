@@ -6,7 +6,8 @@ import shlex
 import serial
 
 import pyaes
-
+import numpy as np
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from .SassComms             import SassComms
@@ -705,8 +706,22 @@ class SAFShell(cmd.Cmd):
             attack = SAFAttackCPA(normal_filepath(args[0]))
             attack.isolate_start = int(args[1])
             attack.isolate_end   = int(args[2])
+            graph  = normal_filepath(args[3])
             
-            fig = attack.run()
+            R,guess = attack.run()
+
+            fig = plt.figure(1)
+            fig.clf()
+            fig.set_size_inches(16,16)
+
+            for i in range(0, 16):
+                sp = plt.subplot(4,4,1+i)
+                sp.plot(R[i])
+                sp.set_title("Byte %d = %s"%(i,hex(guess[i])))
+            
+            fig.savefig(graph)
+            print("Final Key Guess: %s" % (guess.hex()))
+
 
 
     def do_trace_energy_aggregate(self, args):
