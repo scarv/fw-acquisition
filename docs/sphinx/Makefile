@@ -16,8 +16,12 @@ help:
 .PHONY: help Makefile apidocs
 
 apidocs:
-	sphinx-apidoc -f -o "$(SOURCEDIR)" -e -a "$(LIB_PATH)"
+	sphinx-apidoc -P -f -o "$(SOURCEDIR)" -e -a "$(LIB_PATH)"
 	cp ./index.rst $(SOURCEDIR)/index.rst
+	sed -i "s/:members:/:members:\n    :inherited-members:/" \
+        $(SOURCEDIR)/*.rst
+	sed -i "s/:members:/:members:\n    :private-members:/" \
+        $(SOURCEDIR)/*.rst
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
