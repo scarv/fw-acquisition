@@ -6,6 +6,8 @@
 
 #include "sasstarget.h"
 
+void _sass_ctx_null_(sass_ctx * ctx){}
+
 void sass_ctx_init(sass_ctx * ctx) {
     ctx -> on_message_set   = &_sass_ctx_null_;
     ctx -> on_key_set       = &_sass_ctx_null_;

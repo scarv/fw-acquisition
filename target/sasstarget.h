@@ -40,7 +40,7 @@ static const unsigned char SASS_STATUS_ERR     = 0xFA;
 typedef struct _sass_ctx_ sass_ctx;
 
 //! Dummy function which does nothing. Used to initialise function pointers.
-void _sass_ctx_null_(sass_ctx * ctx){}
+void _sass_ctx_null_(sass_ctx * ctx);
 
 //! Initialise a new sass context object
 void sass_ctx_init(sass_ctx * ctx);
