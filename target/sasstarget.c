@@ -6,6 +6,11 @@
 
 #include "sasstarget.h"
 
+void sass_ctx_init(sass_ctx * ctx) {
+    ctx -> on_message_set   = &_sass_ctx_null_;
+    ctx -> on_key_set       = &_sass_ctx_null_;
+    ctx -> on_ciphertext_set= &_sass_ctx_null_;
+}
 
 /*!
 @param ctx in - Pointer ot the context object used by the target to call into
@@ -55,6 +60,7 @@ void sass_target_run(
             for(i=0; i < SASS_KEY_LENGTH; i ++) {
                 ctx -> key[i] = ctx -> recv_byte_from_host();
             }
+            ctx -> on_key_set(ctx);
             ctx -> send_byte_to_host(SASS_STATUS_OK);
 
         } else if(input == SASS_CMD_GET_KEY){
@@ -72,6 +78,7 @@ void sass_target_run(
             for(i=0; i < SASS_MSG_LENGTH; i ++) {
                 ctx -> cipher[i] = ctx -> recv_byte_from_host();
             }
+            ctx -> on_ciphertext_set(ctx);
             ctx -> send_byte_to_host(SASS_STATUS_OK);
 
         } else if(input == SASS_CMD_GET_CIPHER){
@@ -89,6 +96,7 @@ void sass_target_run(
             for(i=0; i < SASS_MSG_LENGTH; i ++) {
                 ctx -> message[i] = ctx -> recv_byte_from_host();
             }
+            ctx -> on_message_set(ctx);
             ctx -> send_byte_to_host(SASS_STATUS_OK);
 
         } else if(input == SASS_CMD_GET_MSG){

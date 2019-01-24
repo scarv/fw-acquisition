@@ -37,12 +37,19 @@ static const unsigned char SASS_STATUS_ERR     = 0xFA;
 #define SASS_MSG_LENGTH 16 
 #define SASS_CFG_FIELDS 16
 
+typedef struct _sass_ctx_ sass_ctx;
+
+//! Dummy function which does nothing. Used to initialise function pointers.
+void _sass_ctx_null_(sass_ctx * ctx){}
+
+//! Initialise a new sass context object
+void sass_ctx_init(sass_ctx * ctx);
 
 /*!
 @brief Context object which is used by the environment to configure
 the communications and capabilities of the target.
 */
-typedef struct {
+struct _sass_ctx_ {
     
     //! Pointer to function used to send bytes to the host.
     void (*send_byte_to_host)(unsigned char to_send);
@@ -74,6 +81,21 @@ typedef struct {
     //! Pointer to function which implements the "custom" command.
     unsigned char (*custom)();    
 
+    //! Called whenever the message is set to a new value
+    void (*on_message_set)(
+        sass_ctx * ctx  
+    );
+    
+    //! Called whenever the key is set to a new value
+    void (*on_key_set)(
+        sass_ctx * ctx  
+    );
+
+    //! Called whenever the ciphertext is set to a new value
+    void (*on_ciphertext_set)(
+        sass_ctx * ctx  
+    );
+
     //! If set to non-zero, the target will shut down.
     char exit;
 
@@ -86,7 +108,7 @@ typedef struct {
     //! The current key value
     char    key     [SASS_KEY_LENGTH];
 
-} sass_ctx;
+};
 
 
 /*!
