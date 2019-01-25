@@ -762,6 +762,64 @@ class SAFShell(cmd.Cmd):
             traces.DumpTRS(t_out)
             del traces
 
+    def do_cfg_set(self, args):
+        """
+        Set a config field on the target device:
+
+        > cfg_set <field> <value>
+
+        Where field and value are 8bit integers.
+        """
+        args = shlex.split(args)
+
+        if(not len(args) == 2):
+            
+            print("Command expects two arguments: 'cfg_set <field> <value>'")
+
+        elif(self.__check_comms() == False):
+        
+            print("No currently active connection.")
+
+        else:
+            field, value = args
+            field = bytes([int(field)])
+            value = bytes([int(value)])
+
+            rsp = self.comms.doSetCfg(field,value)
+            if(rsp):
+                print("Set field %s to %s" % (field,value))
+            else:
+                print("Failed to set field %s to %s" % (field,value))
+
+
+    def do_cfg_get(self, args):
+        """
+        Get a config field value from the target device:
+
+        > cfg_get <field>
+
+        Where field is an integer.
+        """
+        args = shlex.split(args)
+
+        if(not len(args) == 1):
+            
+            print("Command expects one argument: 'cfg_get <field>'")
+
+        elif(self.__check_comms() == False):
+        
+            print("No currently active connection.")
+
+        else:
+            field = args[0]
+            field = bytes([int(field)])
+
+            rsp = self.comms.doGetCfg(field)
+            if(rsp == False):
+                print("Failed to get config field %s" % field)
+            else:
+                print("Field %s is : %s" % (field, rsp))
+
 
     def do_disconnect(self, args):
         """
