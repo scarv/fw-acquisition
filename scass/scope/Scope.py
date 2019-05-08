@@ -1,4 +1,6 @@
 
+import numpy as np
+
 from . import ScopeChannel
 
 class Scope(object):
@@ -25,6 +27,17 @@ class Scope(object):
         """
         assert(isinstance(channel, ScopeChannel))
         raise NotImplementedError("Function should be implemented by inheriting classes")
+
+
+    def getRawChannelData(self, channel):
+        """
+        Return the most recently captured raw signal data for the supplied 
+        channel as a numpy array.
+        """
+        assert(isinstance(channel,ScopeChannel))
+        assert(channel in self._channels)
+        raise NotImplementedError("Function should be implemented by inheriting classes")
+        return np.zeros(1,dtype=int)
 
 
     def scopeReady(self):
@@ -54,3 +67,41 @@ class Scope(object):
           serial number."""
         raise NotImplementedError("Function should be implemented by inheriting classes")
         return "Not Implemented"
+
+
+    def setSamplingFrequency(self, sampleFreq, numSamples):
+        """Set the desired sampling frequency. Return the actual
+            sampling frequency"""
+        raise NotImplementedError("Function should be implemented by inheriting classes")
+        return 0
+
+    def setSamplingResolution(self, resolution):
+        """Set the resolution of the sample values"""
+        raise NotImplementedError("Function should be implemented by inheriting classes")
+    
+    
+    def runCapture(self):
+        """Wait for the trigger to indicate some data was captured and
+        then return. Use getRawChannelData to return the data."""
+        raise NotImplementedError("Function should be implemented by inheriting classes")
+
+
+    def findTriggerWindowSize(self, trigger_signal):
+        """
+        Finds the index of the last sample in the trigger signal which 
+        falls below 50% its maximum value.
+        param trigger_signal is a numpy array.
+        """
+
+        threshold = np.amax(trigger_signal) / 4
+
+        print("Max value: %d" % np.amax(trigger_signal))
+        print("T   value: %d" % threshold)
+
+        hi  = len(trigger_signal) - 1
+
+        while(trigger_signal[hi] < threshold):
+            hi = hi - 1
+        
+        return  hi
+        

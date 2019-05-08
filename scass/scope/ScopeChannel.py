@@ -63,26 +63,32 @@ class ScopeChannel(object):
         """Is the channel enabled?"""
         assert(isinstance(v,bool))
         self._enabled = v
+        self._scope.configureChannel(self)
 
     @coupling.setter
     def coupling(self,v):
         """AC or DC coupling?"""
         assert(v == ScopeChannel.COUPLING_DC or v == ScopeChannel.COUPLING_AC)
         self._coupling = v
+        self._scope.configureChannel(self)
 
     @voffset.setter
     def voffset(self, v):
         """DC Voltage offset"""
         assert(isinstance(v,int) or isinstance(v,float))
         self._voffset = v
+        self._scope.configureChannel(self)
 
     @vrange.setter
     def vrange(self,v):
         """Voltage measurement range"""
         assert(isinstance(v,int) or isinstance(v,float))
         self._vrange = v
+        self._scope.configureChannel(self)
     
     @probe_attenuation.setter
     def probe_attenuation(self,v):
         assert(isinstance(v,float))
         self._probe_attenuation = v
+        self._scope.configureChannel(self)
+

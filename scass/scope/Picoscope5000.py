@@ -43,13 +43,27 @@ class Picoscope5000(Scope):
         self.__scope.setChannel(
             channel         = channel.channel_id,
             coupling        = coupling,
-            vrange          = channel.vrange,
-            voffset         = channel.voffset,
+            VRange          = channel.vrange,
+            VOffset         = channel.voffset,
             enabled         = channel.enabled,
             BWLimited       = False,
             probeAttenuation= channel.probe_attenuation
         )
 
+
+    def getRawChannelData(self, channel):
+        """
+        Return the most recently captured raw signal data for the supplied 
+        channel as a numpy array.
+        """
+        assert(isinstance(channel,ScopeChannel))
+        assert(channel.channel_id in self._channels)
+
+        data, nsamples,overflow = self.__scope.getDataRaw(
+            channel = channel.channel_id,
+        )
+
+        return data
 
     def configureTrigger(self, trigger):
         """
@@ -78,9 +92,31 @@ class Picoscope5000(Scope):
         )
 
 
+    def setSamplingFrequency(self, sampleFreq,numSamples):
+        """Set the desired sampling frequency. Return the actual
+            sampling frequency"""
+        freq, nsamples = self.__scope.setSamplingFrequency(
+            sampleFreq,
+            numSamples
+        )
+        return (freq,nsamples)
+
+
+    def setSamplingResolution(self, resolution):
+        """Set the resolution of the sample values"""
+        self.__scope.setResolution(resolution)
+
+
     def scopeReady(self):
         """Return true if the scope is ready to use. False otherwise."""
         return self.__scope.isReady()
+
+
+    def runCapture(self):
+        """Wait for the trigger to indicate some data was captured and
+        then return. Use getRawChannelData to return the data."""
+        self.__scope.runBlock()
+
     
     @property
     def scope_information(self):

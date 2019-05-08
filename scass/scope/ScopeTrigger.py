@@ -1,5 +1,6 @@
 
 from . import Scope
+from . import ScopeChannel
 
 class ScopeTrigger(object):
     """Storage for a trigger signal configuration"""
@@ -58,12 +59,12 @@ class ScopeTrigger(object):
     @src_channel.setter
     def src_channel(self,v):
         """The ScopeChannel object this trigger overlays"""
-        if(isinstance(v,ScopeChannel)):
+        if(isinstance(v,ScopeChannel.ScopeChannel)):
             assert(v.channel_id in self._scope.channels)
             self._src_channel = v
         else:
             assert(v in self._scope.channels)
-            self._src_channel = self.__scope.get_channel(v)
+            self._src_channel = self._scope.getChannel(v)
 
     @direction.setter
     def direction(self,v):
