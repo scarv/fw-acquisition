@@ -51,7 +51,7 @@ class Picoscope5000(Scope):
         )
 
 
-    def getRawChannelData(self, channel):
+    def getRawChannelData(self, channel, numSamples = 0):
         """
         Return the most recently captured raw signal data for the supplied 
         channel as a numpy array.
@@ -61,6 +61,7 @@ class Picoscope5000(Scope):
 
         data, nsamples,overflow = self.__scope.getDataRaw(
             channel = channel.channel_id,
+            numSamples = numSamples
         )
 
         return data

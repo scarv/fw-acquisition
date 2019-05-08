@@ -29,7 +29,7 @@ class Scope(object):
         raise NotImplementedError("Function should be implemented by inheriting classes")
 
 
-    def getRawChannelData(self, channel):
+    def getRawChannelData(self, channel, numSamples = 0):
         """
         Return the most recently captured raw signal data for the supplied 
         channel as a numpy array.
@@ -95,13 +95,7 @@ class Scope(object):
 
         threshold = np.amax(trigger_signal) / 4
 
-        hi  = len(trigger_signal) - 1
-
-        while(trigger_signal[hi] < threshold):
-            hi = hi / 2
-
-        while(trigger_signal[hi] > threshold):
-            hi = hi * 2
+        hi  = trigger_signal.size - 1
         
         while(trigger_signal[hi] < threshold):
             hi = hi - 1

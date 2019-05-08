@@ -29,13 +29,13 @@ static void helloworld(
     scass_target_cfg * cfg //!< The scass target config
 ) {
 
-    char * tosend = "Hello World!\n";
+    //char * tosend = "Hello World!\n";
 
-    for(int i = 0; tosend[i] != 0; i++) {
+    //for(int i = 0; tosend[i] != 0; i++) {
 
-        cfg -> scass_io_wr_char(tosend[i]);
+    //    cfg -> scass_io_wr_char(tosend[i]);
 
-    }
+    //}
 
 }
 
@@ -85,6 +85,10 @@ void scass_loop (
         }
         
         cfg -> scass_io_wr_char(rsp);
+
+        if(rsp == SCASS_RSP_ERROR) {
+            cfg -> scass_io_wr_char(cmd);
+        }
 
     }
 

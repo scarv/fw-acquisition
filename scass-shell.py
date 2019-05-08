@@ -2,9 +2,16 @@
 
 import scass
 
-import matplotlib.pyplot as plt
-
 def main():
+
+    # Connect to a target device
+    target                  = scass.comms.Target(
+        "/dev/ttyUSB0",
+        9600
+    )
+
+    assert(target.doHelloWorld())
+    assert(target.doInitExperiment())
     
     # Connect to the first picoscope5000 we find.
     scope                   = scass.scope.Picoscope5000()
@@ -37,24 +44,29 @@ def main():
 
     scope.setSamplingResolution("8")
 
-    sample_freq,nsamples    = scope.setSamplingFrequency(100e6, 1000)
+    nsamples                = 2000
+    sample_freq,x           = scope.setSamplingFrequency(200e6, nsamples)
+    nsamples                = min(nsamples,x)
 
     print("Actual sampling frequency: %s" % str(sample_freq))
     print("Number of samples per capture: %d"% nsamples)
     print("Waiting for capture...")
     scope.runCapture()
 
+    target.doRunExperiment()
+
     while(not scope.scopeReady()):
         pass
 
     print("Getting captured data...")
-    signal_power            = scope.getRawChannelData(chan_s)
-    signal_trigger          = scope.getRawChannelData(chan_t)
-    window_size             = scope.findTriggerWindowSize(signal_trigger)
-    
+    signal_power            = scope.getRawChannelData(chan_s,nsamples)
+    signal_trigger          = scope.getRawChannelData(chan_t,nsamples)
     print("Got %d samples." % len(signal_power))
 
+    window_size             = scope.findTriggerWindowSize(signal_trigger)
     print("Trigger window size: %d" % window_size)
+
+    import matplotlib.pyplot as plt
 
     plt.plot(signal_power)
     plt.plot(signal_trigger)
