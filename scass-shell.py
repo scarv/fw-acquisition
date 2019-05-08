@@ -56,8 +56,8 @@ def main():
 
     print("Trigger window size: %d" % window_size)
 
-    plt.plot(signal_power[0:window_size])
-    plt.plot(signal_trigger[0:window_size])
+    plt.plot(signal_power)
+    plt.plot(signal_trigger)
     plt.show()
 
 if(__name__ == "__main__"):

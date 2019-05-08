@@ -95,13 +95,16 @@ class Scope(object):
 
         threshold = np.amax(trigger_signal) / 4
 
-        print("Max value: %d" % np.amax(trigger_signal))
-        print("T   value: %d" % threshold)
-
         hi  = len(trigger_signal) - 1
 
         while(trigger_signal[hi] < threshold):
-            hi = hi - 1
+            hi = hi / 2
+
+        while(trigger_signal[hi] > threshold):
+            hi = hi * 2
         
+        while(trigger_signal[hi] < threshold):
+            hi = hi - 1
+
         return  hi
         
