@@ -49,11 +49,15 @@ class Target(object):
         Set the PRNG seed value, where the supplied seed is an
         integer
         """
+        assert(isinstance(seed,int))
+
         self.__sendByte(SCASS_CMD_SEED_PRNG)
+
         self.__sendByte((seed >> 24) & 0xFF)
         self.__sendByte((seed >> 16) & 0xFF)
         self.__sendByte((seed >>  8) & 0xFF)
         self.__sendByte((seed >>  0) & 0xFF)
+
         return self.__cmdSuccess()
 
 
