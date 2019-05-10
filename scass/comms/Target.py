@@ -1,12 +1,16 @@
 
 import serial
 
-SCASS_CMD_HELLOWORLD      = "H".encode("ascii")
-SCASS_CMD_INIT_EXPERIMENT = "I".encode("ascii")
-SCASS_CMD_RUN_EXPERIMENT  = "R".encode("ascii")
-SCASS_CMD_SEED_PRNG       = "P".encode("ascii")
-SCASS_RSP_OKAY            = "0".encode("ascii")
-SCASS_RSP_ERROR           = "!".encode("ascii")
+SCASS_CMD_HELLOWORLD            = "H".encode("ascii")
+SCASS_CMD_INIT_EXPERIMENT       = "I".encode("ascii")
+SCASS_CMD_RUN_EXPERIMENT        = "R".encode("ascii")
+SCASS_CMD_SEED_PRNG             = "P".encode("ascii")
+SCASS_CMD_EXPERIMENT_NAME       = "N".encode("ascii")
+SCASS_CMD_EXPERIMENT_LEN_DATA   = "L".encode("ascii")
+SCASS_CMD_EXPERIMENT_SET_DATA   = "S".encode("ascii")
+SCASS_CMD_EXPERIMENT_GET_DATA   = "G".encode("ascii")
+SCASS_RSP_OKAY                  = "0".encode("ascii")
+SCASS_RSP_ERROR                 = "!".encode("ascii")
 
 class Target(object):
     """
@@ -39,10 +43,80 @@ class Target(object):
         self.__sendByte(SCASS_CMD_INIT_EXPERIMENT)
         return self.__cmdSuccess()
 
+
     def doRunExperiment(self):
         """Run the experiment once"""
         self.__sendByte(SCASS_CMD_RUN_EXPERIMENT)
         return self.__cmdSuccess()
+
+
+    def doGetExperiementName(self):
+        """Return the name of the experiment currently running as a string
+        if successful, otherwise return False"""
+        self.__sendByte(SCASS_CMD_EXPERIMENT_NAME)
+        slen = int.from_bytes(self.__recvByte(),byteorder="little")
+
+        ename = ""
+        for i in range(0, slen):
+            ename += (str(self.__recvByte(),encoding="ascii"))
+
+        if(self.__cmdSuccess()):
+            return ename
+        else:
+            return False
+
+
+    def doGetExperiementDataLength(self):
+        """Return the length in bytes of the experiment data array
+        or False if the command fails"""
+        self.__sendByte(SCASS_CMD_EXPERIMENT_LEN_DATA)
+        
+        bdata  = self.port.read(4)
+        assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
+        result = int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
+
+
+    def doSetExperimentData(self, data):
+        """
+        Takes an N length byte array and writes it to the experiment
+        data array on the target side. Does not check the data array
+        is the correct length, just writes the whole thing.
+        data array should be the same length as value returned by
+        doGetExperiementDataLength
+        """
+
+        self.__sendByte(SCASS_CMD_EXPERIMENT_SET_DATA)
+
+        self.port.write(data)
+
+        return self.__cmdSuccess()
+
+
+    def doGetExperiementData(self, length):
+        """
+        Return a byte array <length> bytes long. <length> should be
+        equal to the value returned by doGetExperiementDataLength
+        """
+
+        assert(isinstance(length,int))
+
+        self.__sendByte(SCASS_CMD_EXPERIMENT_GET_DATA)
+        
+        tr = self.port.read(length)
+        
+        assert(len(tr) == length), "Expected %d bytes, got %d"%(
+            length,len(tr))
+        
+        if(self.__cmdSuccess()):
+            return tr
+        else:
+            return False
+
 
     def doSeedPRNG(self, seed):
         """
@@ -74,11 +148,14 @@ class Target(object):
         self.port.write(b)
         self.port.flush()
 
-    def __getRsp(self):
-        """Get the response code from the target"""
+    def __recvByte(self):
         rsp = self.port.read()
         #print("< %s"%str(rsp))
-        return rsp   
+        return rsp
+
+    def __getRsp(self):
+        """Get the response code from the target"""
+        return self.__recvByte()
 
     def __cmdSuccess(self):
         """Return true if the next byte read is SCASS_RSP_OKAY, else

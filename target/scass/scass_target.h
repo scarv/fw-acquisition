@@ -4,10 +4,14 @@
 #ifndef SCASS_TARGET_H
 #define SCASS_TARGET_H
 
-#define SCASS_CMD_HELLOWORLD      'H'
-#define SCASS_CMD_INIT_EXPERIMENT 'I'
-#define SCASS_CMD_RUN_EXPERIMENT  'R'
-#define SCASS_CMD_SEED_PRNG       'P'
+#define SCASS_CMD_HELLOWORLD            'H'
+#define SCASS_CMD_INIT_EXPERIMENT       'I'
+#define SCASS_CMD_RUN_EXPERIMENT        'R'
+#define SCASS_CMD_SEED_PRNG             'P'
+#define SCASS_CMD_EXPERIMENT_NAME       'N'
+#define SCASS_CMD_EXPERIMENT_LEN_DATA   'L'
+#define SCASS_CMD_EXPERIMENT_SET_DATA   'S'
+#define SCASS_CMD_EXPERIMENT_GET_DATA   'G'
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'
@@ -25,6 +29,12 @@ struct __scass_target_cfg {
     
     //! Current value of the PRNG.
     uint32_t prng_value;
+
+    //! A buffer of data used to get data in/out of the experiment.
+    uint8_t * experiment_data;
+    
+    //! The length in bytes of the experiments data array.
+    uint32_t  experiment_data_len;
 
     /*!
     @brief Read a single character from the target UART port.

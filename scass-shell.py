@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+
+import sys
+import secrets
+
 from tqdm import tqdm
 
 import scass
@@ -7,6 +11,7 @@ import scass
 def main():
 
     # Connect to a target device
+    print("Open target...")
     target                  = scass.comms.Target(
         "/dev/ttyUSB0",
         9600
@@ -15,11 +20,26 @@ def main():
     print("Hello world...")
     assert(target.doHelloWorld())
 
+    print("Experiment Init...")
+    assert(target.doInitExperiment())
+
     print("Seed PRNG...")
     assert(target.doSeedPRNG(0xFFFFFFFF))
 
-    print("Experiment Init...")
-    assert(target.doInitExperiment())
+    print("Experiment Name: '%s'"%target.doGetExperiementName())
+
+    edata_len = target.doGetExperiementDataLength()
+    print("Experiment data size: %d" % edata_len)
+    
+    print("Randomising experiment data (%d)..."%edata_len)
+    send_data = secrets.token_bytes(edata_len)
+    target.doSetExperimentData(send_data)
+
+    print("Reading experiment data (%d)..."%edata_len)
+    recv_data = target.doGetExperiementData(edata_len)
+    
+    print("- Send: %s" % str(send_data))
+    print("- Recv: %s" % str(recv_data))
     
     # Connect to the first picoscope5000 we find.
     scope                   = scass.scope.Picoscope5000()
