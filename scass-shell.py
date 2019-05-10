@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from tqdm import tqdm
+
 import scass
 
 def main():
@@ -44,32 +46,59 @@ def main():
 
     scope.setSamplingResolution("8")
 
-    nsamples                = 2000
+    nsamples                = 1000
     sample_freq,x           = scope.setSamplingFrequency(200e6, nsamples)
     nsamples                = min(nsamples,x)
 
     print("Actual sampling frequency: %s" % str(sample_freq))
     print("Number of samples per capture: %d"% nsamples)
     print("Waiting for capture...")
-    scope.runCapture()
 
-    target.doRunExperiment()
+    tmpfile = "/tmp/traces.strs"
+    tfile   = open(tmpfile,"wb")
+    twriter = None
+    dtype   = None
 
-    while(not scope.scopeReady()):
-        pass
+    for i in tqdm(range(0,100)):
+        scope.runCapture()
+        target.doRunExperiment()
 
-    print("Getting captured data...")
-    signal_power            = scope.getRawChannelData(chan_s,nsamples)
-    signal_trigger          = scope.getRawChannelData(chan_t,nsamples)
-    print("Got %d samples." % len(signal_power))
+        while(not scope.scopeReady()):
+            pass
 
-    window_size             = scope.findTriggerWindowSize(signal_trigger)
-    print("Trigger window size: %d" % window_size)
+        signal_power            = scope.getRawChannelData(chan_s,nsamples)
+        signal_trigger          = scope.getRawChannelData(chan_t,nsamples)
+        window_size             = scope.findTriggerWindowSize(signal_trigger)
+        
+        if(twriter == None):
+            twriter = scass.trace.TraceWriterSimple(
+                tfile, dtype=signal_power.dtype
+            )
+            dtype = signal_power.dtype
+            twriter.write_through = True
+
+        twriter.writeTrace(signal_power)
+
+    twriter.flushTraces()
+
+    print("Longest trace: %d samples" % twriter.longest_trace)
+
+    print("Trace data type: %s (%s)" % (dtype.name,dtype.str))
+    print("Reading traces back...")
+
+    tfile.close()
+    tfile   = open(tmpfile,"rb")
+    treader = scass.trace.TraceReaderSimple(tfile, dtype=dtype)
+    treader.readTraces()
+    
+    print("Traces Read: %d" % treader.traces_read)
 
     import matplotlib.pyplot as plt
 
-    plt.plot(signal_power)
-    plt.plot(signal_trigger)
+    for t in treader.traces:
+
+        plt.plot(t)
+
     plt.show()
 
 if(__name__ == "__main__"):

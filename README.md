@@ -18,7 +18,7 @@ $> sudo pip3 install -r requirements.txt
 ## Todo List:
 
 - [X] Scope Interface
-- [ ] Trace File RW library
+- [X] Trace File RW library
 - [ ] Trace File Modifiation
 - [X] Target Program Communication library
 - [X] Target Program C code
