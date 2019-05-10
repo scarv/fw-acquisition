@@ -53,10 +53,9 @@ class Target(object):
 
         self.__sendByte(SCASS_CMD_SEED_PRNG)
 
-        self.__sendByte((seed >> 24) & 0xFF)
-        self.__sendByte((seed >> 16) & 0xFF)
-        self.__sendByte((seed >>  8) & 0xFF)
-        self.__sendByte((seed >>  0) & 0xFF)
+        ibytes = seed.to_bytes(4,byteorder="little")
+
+        self.port.write(ibytes)
 
         return self.__cmdSuccess()
 
@@ -71,7 +70,7 @@ class Target(object):
 
 
     def __sendByte(self, b):
-        #print("> %s"%str(b))
+        #print("> %s"%(str(b)))
         self.port.write(b)
         self.port.flush()
 

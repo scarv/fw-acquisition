@@ -12,7 +12,13 @@ def main():
         9600
     )
 
+    print("Hello world...")
     assert(target.doHelloWorld())
+
+    print("Seed PRNG...")
+    assert(target.doSeedPRNG(0xFFFFFFFF))
+
+    print("Experiment Init...")
     assert(target.doInitExperiment())
     
     # Connect to the first picoscope5000 we find.
@@ -46,7 +52,7 @@ def main():
 
     scope.setSamplingResolution("8")
 
-    nsamples                = 1000
+    nsamples                = 2000
     sample_freq,x           = scope.setSamplingFrequency(200e6, nsamples)
     nsamples                = min(nsamples,x)
 
@@ -97,7 +103,7 @@ def main():
 
     for t in treader.traces:
 
-        plt.plot(t)
+        plt.plot(t, linewidth=0.1)
 
     plt.show()
 
