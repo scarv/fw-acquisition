@@ -50,6 +50,9 @@ class TraceReaderBase(object):
         raise NotImplementedError("_readTraces not implemented")
 
 
+    def close(self):
+        self._fh.close()
+
     @property
     def traces_read(self):
         """Return number of traces read from disk"""

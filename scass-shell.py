@@ -10,6 +10,11 @@ from tqdm import tqdm
 
 import scass
 
+class TestTTestCapture(scass.ttest.TTestCapture):
+    
+    def update_target_fixed_data(self):
+        return b'\xa6K5\xe6P\xb7\x98I'
+
 def main():
 
     # Connect to a target device
@@ -127,7 +132,7 @@ def main():
     ts_fix_wr = scass.trace.TraceWriterSimple(open(ts_fix_file,"wb"),dtype)
     ts_rng_wr = scass.trace.TraceWriterSimple(open(ts_rng_file,"wb"),dtype)
 
-    ttest_capture = scass.ttest.TTestCapture(
+    ttest_capture = TestTTestCapture(
         target,
         scope,
         chan_t,
@@ -140,6 +145,8 @@ def main():
 
     ttest_capture.store_input_with_trace = True
     ttest_capture.runTTest()
+
+    print("TTest Fixed Value: %s" % str(ttest_capture.fixed_value))
     
     ts_fix_wr.close()
     ts_rng_wr.close()
@@ -153,6 +160,9 @@ def main():
 
     ts_fix.loadFromTraceReader(ts_fix_rd)
     ts_rng.loadFromTraceReader(ts_rng_rd)
+
+    ts_fix_rd.close()
+    ts_rng_rd.close()
 
     print("Running TTest...")
     ttest = scass.ttest.TTest(ts_fix, ts_rng)

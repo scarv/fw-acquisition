@@ -87,20 +87,18 @@ class TTestCapture(object):
         # Length of experiment data array on the target.
         self.input_data_len = None
 
-        self.__fixed_value  = None
 
-
-    def __update_target_fixed_data(self):
+    def update_target_fixed_data(self):
         """
         This function should be overriden by inheriting classes, and
         is responsible for updating the target data to the "fixed" value.
 
         Returns: The fixed data value as a byte string.
         """
-        return self.__fixed_value
+        return secrets.token_bytes(self.input_data_len)
 
     
-    def __update_target_random_data(self):
+    def update_target_random_data(self):
         """
         This function should be overriden by inheriting classes, and
         is responsible for updating the target data to "random" values.
@@ -121,7 +119,9 @@ class TTestCapture(object):
 
         # Get the length of the target experiment data array.
         self.input_data_len = self.target.doGetInputDataLength()
-        self.__fixed_value  = secrets.token_bytes(self.input_data_len)
+        self.__fixed_value  = self.update_target_fixed_data()
+
+        assert(len(self.__fixed_value) == self.input_data_len)
         
         self.target.doInitExperiment()
 
@@ -139,9 +139,9 @@ class TTestCapture(object):
             tdata      = None
 
             if(fixed_data) :
-                tdata       = self.__update_target_fixed_data()
+                tdata       = self.update_target_fixed_data()
             else:
-                tdata       = self.__update_target_random_data()
+                tdata       = self.update_target_random_data()
 
             self.target.doSetInputData(tdata)
 
@@ -171,6 +171,10 @@ class TTestCapture(object):
         self.ts_fixed.flushTraces()
 
     # ------------------
+
+    @property
+    def fixed_value(self):
+        return self.__fixed_value
 
     @property
     def progress_bar(self):
