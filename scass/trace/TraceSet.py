@@ -1,0 +1,126 @@
+
+import numpy as np
+
+from .TraceReaderBase import TraceReaderBase
+
+class TraceSet(object):
+    """
+    A collection of traces which can be subjected to bulk processing,
+    analysis and storage.
+    """
+
+    def __init__(self):
+        """
+        Create a new empty trace set.
+        """
+        
+        # List of traces being analysed
+        self.__traces   = []
+
+        # Associated auxiliary data
+        self.__aux_data = []
+
+
+    def addTrace(self, trace, aux_data, trim_pad = False):
+        """
+        Add a new trace and associated data to the to the set.
+
+        parameters:
+        trace: np.ndarray
+            The trace to add
+        aux_data: np.ndarray
+            Associated trace data. Can be None / zero length
+        trim_pad: bool
+            If true, zero pad or trim the length of the new trace
+            to the same size as the zeroth trace currently in the set.
+        """
+        
+        if(trim_pad and len(self.__traces) > 0):
+            
+            t0len = self.__traces[0].size
+
+            if(trace.size > t0len):
+                self.__traces.append(trace[0:t0len])
+
+            elif(trace.size < t0len):
+                ta = np.pad(trace,(0,t0len-trace.size),'constant',
+                    constant_values=(0,0))
+                self.__traces.append(ta)
+
+            else:
+                self.__traces.append(trace)
+
+
+        else:
+            self.__traces.append(trace)
+        
+        self.__aux_data.append(aux_data)
+
+    def tracesAs2dArray(self):
+        """
+        Returns a 2d ndarray object of all traces, where one row
+        of the return value is one trace.
+        Will fail if traces_are_uniform_length == False
+        """
+        return np.transpose(np.array(self.__traces))
+
+
+    def auxDataAs2dArray(self):
+        """
+        Returns a 2d ndarray object of all aux-data elements, where
+        one row of the return value is one array of aux data.
+        """
+        return np.array(self.__aux_data)
+
+
+    def averageTrace(self):
+        """
+        Return the average of all traces in the set.
+        """
+        return np.mean(
+            self.tracesAs2dArray(),
+            axis = 1)
+
+
+    def loadFromTraceReader(self, reader):
+        """
+        Load traces from the supplied trace reader object into
+        the set.
+        """
+        assert(isinstance(reader, TraceReaderBase))
+        
+        reader.readTraces()
+
+        self.__traces   = reader.traces
+        self.__aux_data = reader.aux_data
+
+
+    @property
+    def traces_are_uniform_length(self):
+        """Return true if all traces are the same length, otherwise False"""
+        l0 = self.__traces[0].size
+        for t in self.__traces[1:]:
+            if(t.size != l0):
+                return False
+        return True
+
+    @property
+    def trace_length(self):
+        """Return the length of the zeroth trace in the set"""
+        return self.__traces[0].size
+    
+    @property
+    def traces_and_aux_data(self):
+        """Return a list of tuples of the form (trace, aux data)"""
+        return zip(self.__traces, self.__aux_data)
+
+    @property
+    def traces(self):
+        """Return a list of numpy.ndarray objects"""
+        return self.__traces
+
+    @property
+    def aux_data(self):
+        """Return a list of numpy.ndarray objects"""
+        return self.__aux_data
+

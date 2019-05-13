@@ -132,22 +132,31 @@ def main():
         num_samples=nsamples
     )
     ttest.store_input_with_trace = True
-    ttest.runTTest()
+    #ttest.runTTest()
 
     print("Reading traces back...")
 
     tfile.close()
     tfile   = open(tmpfile,"rb")
     treader = scass.trace.TraceReaderSimple(tfile, dtype=dtype)
-    treader.readTraces()
     
+    trace_set = scass.trace.TraceSet()
+    trace_set.loadFromTraceReader(treader)
+
     print("Traces Read: %d" % treader.traces_read)
+    print("Uniform length: %s" % str(trace_set.traces_are_uniform_length))
+
+    tmatrix = trace_set.tracesAs2dArray()
+    tavg    = trace_set.averageTrace()   
+        
+    print("Trace length: %d" % trace_set.trace_length)
+    print("Avg trace length: %d" % tavg.size)
+    print("tmatrix shape: %s" % str(tmatrix.shape))
 
     import matplotlib.pyplot as plt
 
-    for t in treader.traces:
-
-        plt.plot(t, linewidth=0.1)
+    plt.plot(tmatrix, linewidth=0.1)
+    plt.plot(tavg   , linewidth=1.0)
 
     plt.show()
 
