@@ -73,6 +73,8 @@ class TraceWriterBase(object):
             self._writeTrace(t, aux_data = a)
             self._traces_written += 1
 
+    def close(self):
+        self._fh.close()
 
     def _writeHeader(self, trace):
         """

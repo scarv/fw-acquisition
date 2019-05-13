@@ -47,7 +47,10 @@ class TraceReaderSimple(TraceReaderBase):
             alen    = int.from_bytes(abytes,"little")
             
             trace   = np.fromfile(self._fh, dtype=self.dtype,count=tlen)
-            auxdata = np.fromfile(self._fh, dtype=np.uint8,count=alen)
+            auxdata = None
+            
+            if(alen > 0):
+                np.fromfile(self._fh, dtype=np.uint8,count=alen)
 
             self.traces.append(trace)
             self.aux_data.append(auxdata)

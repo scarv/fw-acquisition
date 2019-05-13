@@ -4,6 +4,8 @@
 import sys
 import secrets
 
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 
 import scass
@@ -119,20 +121,41 @@ def main():
 
 
     # Do a short ttest.
-    ts_fix = scass.trace.TraceWriterSimple(open("/tmp/t-fix.strs","wb"),dtype)
-    ts_rng = scass.trace.TraceWriterSimple(open("/tmp/r-rnd.strs","wb"),dtype)
-    ttest= scass.ttest.TTestCapture(
+    ts_fix_file = "/tmp/t-fix.strs"
+    ts_rng_file = "/tmp/r-rnd.strs"
+
+    ts_fix_wr = scass.trace.TraceWriterSimple(open(ts_fix_file,"wb"),dtype)
+    ts_rng_wr = scass.trace.TraceWriterSimple(open(ts_rng_file,"wb"),dtype)
+
+    ttest_capture = scass.ttest.TTestCapture(
         target,
         scope,
         chan_t,
         chan_s,
-        ts_fix,
-        ts_rng,
+        ts_fix_wr,
+        ts_rng_wr,
         num_traces=100,
         num_samples=nsamples
     )
-    ttest.store_input_with_trace = True
-    #ttest.runTTest()
+
+    ttest_capture.store_input_with_trace = True
+    ttest_capture.runTTest()
+    
+    ts_fix_wr.close()
+    ts_rng_wr.close()
+
+    print("Loading ttest traces...")
+    ts_fix_rd = scass.trace.TraceReaderSimple(open(ts_fix_file,"rb"),dtype)
+    ts_rng_rd = scass.trace.TraceReaderSimple(open(ts_rng_file,"rb"),dtype)
+
+    ts_fix = scass.trace.TraceSet()
+    ts_rng = scass.trace.TraceSet()
+
+    ts_fix.loadFromTraceReader(ts_fix_rd)
+    ts_rng.loadFromTraceReader(ts_rng_rd)
+
+    print("Running TTest...")
+    ttest = scass.ttest.TTest(ts_fix, ts_rng)
 
     print("Reading traces back...")
 
@@ -153,10 +176,14 @@ def main():
     print("Avg trace length: %d" % tavg.size)
     print("tmatrix shape: %s" % str(tmatrix.shape))
 
-    import matplotlib.pyplot as plt
-
+    plt.subplot(3,1,1)
     plt.plot(tmatrix, linewidth=0.1)
-    plt.plot(tavg   , linewidth=1.0)
+    
+    plt.subplot(3,1,2)
+    plt.plot(tavg   , linewidth=0.1)
+
+    plt.subplot(3,1,3)
+    plt.plot(ttest.ttrace, linewidth=0.1)
 
     plt.show()
 

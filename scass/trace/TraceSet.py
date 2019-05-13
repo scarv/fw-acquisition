@@ -62,7 +62,8 @@ class TraceSet(object):
         of the return value is one trace.
         Will fail if traces_are_uniform_length == False
         """
-        return np.transpose(np.array(self.__traces))
+        tr = np.transpose(np.array(self.__traces))
+        return tr
 
 
     def auxDataAs2dArray(self):
@@ -81,6 +82,16 @@ class TraceSet(object):
             self.tracesAs2dArray(),
             axis = 1)
 
+    def standardDeviation(self):
+        """
+        Return the standard deviation over time across all traces.
+        Returns an ndarray as long as self.trace_length, where each
+        element I is the standard deviation over the I'th elements of
+        all traces.
+        """
+        return np.std(
+            self.tracesAs2dArray(),
+            axis = 1)
 
     def loadFromTraceReader(self, reader):
         """
@@ -113,6 +124,11 @@ class TraceSet(object):
     def traces_and_aux_data(self):
         """Return a list of tuples of the form (trace, aux data)"""
         return zip(self.__traces, self.__aux_data)
+
+    @property
+    def num_traces(self):
+        """Return the number of traces in the set"""
+        return len(self.__traces)
 
     @property
     def traces(self):
