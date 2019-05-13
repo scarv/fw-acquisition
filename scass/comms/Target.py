@@ -6,9 +6,12 @@ SCASS_CMD_INIT_EXPERIMENT       = "I".encode("ascii")
 SCASS_CMD_RUN_EXPERIMENT        = "R".encode("ascii")
 SCASS_CMD_SEED_PRNG             = "P".encode("ascii")
 SCASS_CMD_EXPERIMENT_NAME       = "N".encode("ascii")
-SCASS_CMD_EXPERIMENT_LEN_DATA   = "L".encode("ascii")
-SCASS_CMD_EXPERIMENT_SET_DATA   = "S".encode("ascii")
-SCASS_CMD_EXPERIMENT_GET_DATA   = "G".encode("ascii")
+SCASS_CMD_GET_DATA_IN_LEN       = "L".encode("ascii")
+SCASS_CMD_GET_DATA_OUT_LEN      = "l".encode("ascii")
+SCASS_CMD_GET_DATA_IN           = "D".encode("ascii")
+SCASS_CMD_GET_DATA_OUT          = "d".encode("ascii")
+SCASS_CMD_SET_DATA_IN           = "W".encode("ascii")
+SCASS_CMD_SET_DATA_OUT          = "w".encode("ascii")
 SCASS_RSP_OKAY                  = "0".encode("ascii")
 SCASS_RSP_ERROR                 = "!".encode("ascii")
 
@@ -66,10 +69,24 @@ class Target(object):
             return False
 
 
-    def doGetExperiementDataLength(self):
-        """Return the length in bytes of the experiment data array
+    def doGetInputDataLength(self):
+        """Return the length in bytes of the experiment input data array
         or False if the command fails"""
-        self.__sendByte(SCASS_CMD_EXPERIMENT_LEN_DATA)
+        self.__sendByte(SCASS_CMD_GET_DATA_IN_LEN)
+        
+        bdata  = self.port.read(4)
+        assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
+        result = int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
+
+    def doGetOutputDataLength(self):
+        """Return the length in bytes of the experiment output data array
+        or False if the command fails"""
+        self.__sendByte(SCASS_CMD_GET_DATA_OUT_LEN)
         
         bdata  = self.port.read(4)
         assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
@@ -81,31 +98,32 @@ class Target(object):
             return False
 
 
-    def doSetExperimentData(self, data):
+    def doSetInputData(self, data):
         """
         Takes an N length byte array and writes it to the experiment
-        data array on the target side. Does not check the data array
+        input data array on the target side. Does not check the data array
         is the correct length, just writes the whole thing.
         data array should be the same length as value returned by
         doGetExperiementDataLength
         """
 
-        self.__sendByte(SCASS_CMD_EXPERIMENT_SET_DATA)
+        self.__sendByte(SCASS_CMD_SET_DATA_IN)
 
         self.port.write(data)
 
         return self.__cmdSuccess()
 
 
-    def doGetExperiementData(self, length):
+    def doGetOutputData(self, length):
         """
-        Return a byte array <length> bytes long. <length> should be
+        Get the contents of the experiment output data array.
+        Returns a byte array <length> bytes long. <length> should be
         equal to the value returned by doGetExperiementDataLength
         """
 
         assert(isinstance(length,int))
 
-        self.__sendByte(SCASS_CMD_EXPERIMENT_GET_DATA)
+        self.__sendByte(SCASS_CMD_GET_DATA_OUT)
         
         tr = self.port.read(length)
         
@@ -116,6 +134,45 @@ class Target(object):
             return tr
         else:
             return False
+
+
+    def doSetOutputData(self, data):
+        """
+        Takes an N length byte array and writes it to the experiment
+        output data array on the target side. Does not check the data array
+        is the correct length, just writes the whole thing.
+        data array should be the same length as value returned by
+        doGetExperiementDataLength
+        """
+
+        self.__sendByte(SCASS_CMD_SET_DATA_OUT)
+
+        self.port.write(data)
+
+        return self.__cmdSuccess()
+
+
+    def doGetInputData(self, length):
+        """
+        Get the contents of the experiment input data array.
+        Returns a byte array <length> bytes long. <length> should be
+        equal to the value returned by doGetExperiementDataLength
+        """
+
+        assert(isinstance(length,int))
+
+        self.__sendByte(SCASS_CMD_GET_DATA_IN)
+        
+        tr = self.port.read(length)
+        
+        assert(len(tr) == length), "Expected %d bytes, got %d"%(
+            length,len(tr))
+        
+        if(self.__cmdSuccess()):
+            return tr
+        else:
+            return False
+
 
 
     def doSeedPRNG(self, seed):

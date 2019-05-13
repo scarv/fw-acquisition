@@ -28,18 +28,25 @@ def main():
 
     print("Experiment Name: '%s'"%target.doGetExperiementName())
 
-    edata_len = target.doGetExperiementDataLength()
-    print("Experiment data size: %d" % edata_len)
-    
-    print("Randomising experiment data (%d)..."%edata_len)
-    send_data = secrets.token_bytes(edata_len)
-    target.doSetExperimentData(send_data)
+    input_data_len  = target.doGetInputDataLength()
+    output_data_len = target.doGetOutputDataLength()
 
-    print("Reading experiment data (%d)..."%edata_len)
-    recv_data = target.doGetExperiementData(edata_len)
+    wr_input_data   = secrets.token_bytes(input_data_len);
+    wr_output_data  = secrets.token_bytes(output_data_len);
+
+    target.doSetInputData(wr_input_data)
+    target.doSetOutputData(wr_output_data)
     
-    print("- Send: %s" % str(send_data))
-    print("- Recv: %s" % str(recv_data))
+    rd_input_data   = target.doGetInputData(input_data_len)
+    rd_output_data  = target.doGetOutputData(output_data_len)
+
+    print("Input Data Length : %d" % input_data_len)
+    print("Wrote Input Data  : %s" % str(wr_input_data))
+    print("Read Input Data   : %s" % str(rd_input_data))
+    
+    print("Output Data Length: %d" % output_data_len)
+    print("Wrote Output Data : %s" % str(wr_output_data))
+    print("Read Output Data  : %s" % str(rd_output_data))
     
     # Connect to the first picoscope5000 we find.
     scope                   = scass.scope.Picoscope5000()

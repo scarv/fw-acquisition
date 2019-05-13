@@ -67,12 +67,13 @@ static uint8_t get_experiment_name(
 @note Writes least significant byte first.
 */
 static uint8_t get_experiment_data_len(
-    scass_target_cfg * cfg
+    scass_target_cfg * cfg,
+    uint32_t data_len
 ) {
-    uint8_t b0 = (cfg -> experiment_data_len >> 24)&0xFF;
-    uint8_t b1 = (cfg -> experiment_data_len >> 16)&0xFF;
-    uint8_t b2 = (cfg -> experiment_data_len >>  8)&0xFF;
-    uint8_t b3 = (cfg -> experiment_data_len >>  0)&0xFF;
+    uint8_t b0 = (data_len >> 24)&0xFF;
+    uint8_t b1 = (data_len >> 16)&0xFF;
+    uint8_t b2 = (data_len >>  8)&0xFF;
+    uint8_t b3 = (data_len >>  0)&0xFF;
 
     cfg -> scass_io_wr_char(b0);
     cfg -> scass_io_wr_char(b1);
@@ -87,11 +88,13 @@ static uint8_t get_experiment_data_len(
 @brief Dump the experiment data array to the UART.
 */
 static uint8_t get_experiment_data (
-    scass_target_cfg * cfg
+    scass_target_cfg * cfg,
+    uint32_t           data_len,
+    uint8_t          * data_array
 ) {
-    for(int i = 0; i < cfg -> experiment_data_len; i++) {
+    for(int i = 0; i < data_len; i++) {
 
-        cfg -> scass_io_wr_char(cfg -> experiment_data[i]);
+        cfg -> scass_io_wr_char(data_array[i]);
 
     }
 
@@ -103,11 +106,13 @@ static uint8_t get_experiment_data (
 @brief Set the experiment data content by reading from the UART
 */
 static uint8_t set_experiment_data (
-    scass_target_cfg * cfg
+    scass_target_cfg * cfg,
+    uint32_t           data_len,
+    uint8_t          * data_array
 ) {
-    for(int i = 0; i < cfg -> experiment_data_len; i++) {
+    for(int i = 0; i < data_len; i++) {
 
-        cfg -> experiment_data[i] = cfg -> scass_io_rd_char();
+        data_array[i] = cfg -> scass_io_rd_char();
 
     }
 
@@ -146,16 +151,32 @@ void scass_loop (
                 success = get_experiment_name(cfg);
                 break;
 
-            case SCASS_CMD_EXPERIMENT_LEN_DATA:
-                success = get_experiment_data_len(cfg);
+            case SCASS_CMD_GET_DATA_IN_LEN:
+                success = get_experiment_data_len(cfg,cfg->data_in_len);
+                break;
+            
+            case SCASS_CMD_GET_DATA_OUT_LEN:
+                success = get_experiment_data_len(cfg,cfg->data_out_len);
                 break;
 
-            case SCASS_CMD_EXPERIMENT_GET_DATA:
-                success = get_experiment_data(cfg);
+            case SCASS_CMD_GET_DATA_IN:
+                success = get_experiment_data(
+                    cfg, cfg -> data_in_len, cfg -> data_in);
+                break;
+            
+            case SCASS_CMD_GET_DATA_OUT:
+                success = get_experiment_data(
+                    cfg, cfg -> data_out_len, cfg -> data_out);
                 break;
 
-            case SCASS_CMD_EXPERIMENT_SET_DATA:
-                success = set_experiment_data(cfg);
+            case SCASS_CMD_SET_DATA_IN:
+                success = set_experiment_data(
+                    cfg, cfg -> data_in_len, cfg -> data_in);
+                break;
+            
+            case SCASS_CMD_SET_DATA_OUT:
+                success = set_experiment_data(
+                    cfg, cfg -> data_out_len, cfg -> data_out);
                 break;
 
             default:
