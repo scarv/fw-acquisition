@@ -17,6 +17,7 @@ class TraceReaderBase(object):
 
         self.dtype          = dtype
         self.traces         = []
+        self.aux_data       = []
 
         self._readHeader()
 

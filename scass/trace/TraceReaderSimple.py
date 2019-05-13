@@ -35,16 +35,22 @@ class TraceReaderSimple(TraceReaderBase):
         while(n == None or nread < n):
             
             rbytes  = self._fh.read(4)
+            abytes  = self._fh.read(4)
 
             if(len(rbytes) == 0):
                 return # EOF, file empty.
 
             # Items in the trace
-            alen    = int.from_bytes(rbytes,"little")
+            tlen    = int.from_bytes(rbytes,"little")
+
+            # Length of aux data in bytes
+            alen    = int.from_bytes(abytes,"little")
             
-            trace   = np.fromfile(self._fh, dtype=self.dtype,count=alen)
+            trace   = np.fromfile(self._fh, dtype=self.dtype,count=tlen)
+            auxdata = np.fromfile(self._fh, dtype=np.uint8,count=alen)
 
             self.traces.append(trace)
+            self.aux_data.append(auxdata)
 
             self._longest_trace = max(len(trace), self._longest_trace)
 

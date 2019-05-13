@@ -23,21 +23,26 @@ class TraceWriterBase(object):
         self._longest_trace  = 0
 
         self._pending_traces = [] # traces not yet flushed to disk
+        self._aux_data       = [] # associated data not yet flushed...
         self.__header_written= False
 
 
-    def writeTraces(self, traces):
+    def writeTraces(self, traces, aux_data=None):
         """Takes an iterable of traces and calls writeTrace on each one"""
-        for t in traces:
-            self.writeTrace(t)
+        if(aux_data != None):
+            for (t,d) in zip(traces,aux_data):
+                self.writeTrace(t,aux_data = d)
+        else:
+            for t in traces:
+                self.writeTrace(t)
 
-
-    def writeTrace(self, trace):
+    def writeTrace(self, trace, aux_data = None):
         """
         Write a trace to disk. The trace will be written immediately
         or held in memory depending on self.write_through
         """
         assert(isinstance(trace, np.ndarray))
+        assert(isinstance(aux_data,np.ndarray) or aux_data==None)
 
         if(not self.__header_written):
             self._writeHeader(trace)
@@ -45,12 +50,13 @@ class TraceWriterBase(object):
 
         if(self._write_through):
 
-            self._writeTrace(trace)
+            self._writeTrace(trace, aux_data)
             self._traces_written += 1
 
         else:
 
             self._pending_traces.append(trace)
+            self._aux_data.append(aux_data)
 
         self._longest_trace   = max(self._longest_trace, len(trace))
 
@@ -62,8 +68,9 @@ class TraceWriterBase(object):
         while(len(self._pending_traces) > 0):
             
             t = self._pending_traces.pop()
+            a = self._aux_data.pop()
 
-            self._writeTrace(t)
+            self._writeTrace(t, aux_data = a)
             self._traces_written += 1
 
 

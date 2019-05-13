@@ -1,4 +1,6 @@
 
+import numpy as np
+
 from .TraceWriterBase import TraceWriterBase
 
 class TraceWriterSimple(TraceWriterBase):
@@ -32,7 +34,7 @@ class TraceWriterSimple(TraceWriterBase):
             hlen += 1
         
 
-    def _writeTrace(self, trace):
+    def _writeTrace(self, trace, aux_data):
         """
         Write the numpy array out as bytes, prefixed by it's length
         as a 32-bit integer.
@@ -44,11 +46,20 @@ class TraceWriterSimple(TraceWriterBase):
             raise ValueError("Expected trace data type %s, but got %s" %(
                 self.dtype.name, trace.dtype))
 
-        alen    = trace.size
-        blen    = alen.to_bytes(4,byteorder="little")
-        
+        tlen    = trace.size.to_bytes(4,byteorder="little")
         tbytes  = trace.tobytes(order='C')
 
-        self._fh.write(blen)
+        alen    = (0).to_bytes(4,byteorder="little")
+        abytes  = None
+        
+        if(isinstance(aux_data,np.ndarray)):
+            alen   = aux_data.size.to_bytes(4,byteorder="little")
+            abytes = aux_data.tobytes(order='C')
+
+        self._fh.write(tlen)
+        self._fh.write(alen)
         self._fh.write(tbytes)
+
+        if(isinstance(aux_data,np.ndarray)):
+            self._fh.write(abytes)
 

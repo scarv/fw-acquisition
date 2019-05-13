@@ -115,8 +115,25 @@ def main():
     twriter.flushTraces()
 
     print("Longest trace: %d samples" % twriter.longest_trace)
-
     print("Trace data type: %s (%s)" % (dtype.name,dtype.str))
+
+
+    # Do a short ttest.
+    ts_fix = scass.trace.TraceWriterSimple(open("/tmp/t-fix.strs","wb"),dtype)
+    ts_rng = scass.trace.TraceWriterSimple(open("/tmp/r-rnd.strs","wb"),dtype)
+    ttest= scass.ttest.TTestCapture(
+        target,
+        scope,
+        chan_t,
+        chan_s,
+        ts_fix,
+        ts_rng,
+        num_traces=100,
+        num_samples=nsamples
+    )
+    ttest.store_input_with_trace = True
+    ttest.runTTest()
+
     print("Reading traces back...")
 
     tfile.close()
