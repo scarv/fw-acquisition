@@ -229,3 +229,4 @@ class Target(object):
             if(self.exception_on_command_fail):
                 raise Exception("Unknown SCASS code: %s" %str(rsp_code))
             return False
+

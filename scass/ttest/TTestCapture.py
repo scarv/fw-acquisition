@@ -146,7 +146,12 @@ class TTestCapture(object):
             self.target.doSetInputData(tdata)
 
             self.scope.runCapture()
-            self.target.doRunExperiment()
+
+            try:
+                self.target.doRunExperiment()
+            except Exception as e:
+                print("Caught exception during TTest Capture: %s" % str(e))
+                print("Continuing...")
 
             while(not self.scope.scopeReady()):
                 pass

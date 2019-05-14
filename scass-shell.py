@@ -69,7 +69,7 @@ def main():
     chan_t.coupling         = scass.scope.ScopeChannel.COUPLING_DC
     chan_t.enabled          = True
 
-    chan_s.vrange           = 5
+    chan_s.vrange           = 50e-3
     chan_s.voffset          = 0
     chan_s.probeAttenuation = 1.0
     chan_s.coupling         = scass.scope.ScopeChannel.COUPLING_DC
@@ -86,13 +86,28 @@ def main():
 
     scope.setSamplingResolution("8")
 
-    nsamples                = 2000
-    sample_freq,x           = scope.setSamplingFrequency(200e6, nsamples)
-    nsamples                = min(nsamples,x)
+    nsamples                = 20000
+    sample_freq             = scope.setSamplingFrequency(200e6, nsamples)
+    nsamples                = min(20000,scope.max_samples)
+
+    scope.runCapture()
+    target.doRunExperiment()
+    tsig                    = scope.getRawChannelData(chan_t,nsamples)
+    trigger_window_size     = scope.findTriggerWindowSize(tsig)
+    
+    tws_seconds             = trigger_window_size * (1.0 / sample_freq)
+
+    print("Trigger Window Size: %d samples" % (trigger_window_size))
+    print("Trigger Window Size: %f seconds" % (tws_seconds))
+    print("Max Samples:         %d" % (scope.max_samples))
+
+    nsamples                = trigger_window_size
 
     print("Actual sampling frequency: %s" % str(sample_freq))
     print("Number of samples per capture: %d"% nsamples)
     print("Waiting for capture...")
+
+    scope.plotSingleCapture(target,nsamples)
 
     tmpfile = "/tmp/traces.strs"
     tfile   = open(tmpfile,"wb")
@@ -108,7 +123,6 @@ def main():
 
         signal_power            = scope.getRawChannelData(chan_s,nsamples)
         signal_trigger          = scope.getRawChannelData(chan_t,nsamples)
-        window_size             = scope.findTriggerWindowSize(signal_trigger)
         
         if(twriter == None):
             twriter = scass.trace.TraceWriterSimple(
@@ -124,7 +138,6 @@ def main():
     print("Longest trace: %d samples" % twriter.longest_trace)
     print("Trace data type: %s (%s)" % (dtype.name,dtype.str))
 
-
     # Do a short ttest.
     ts_fix_file = "/tmp/t-fix.strs"
     ts_rng_file = "/tmp/r-rnd.strs"
@@ -139,7 +152,7 @@ def main():
         chan_s,
         ts_fix_wr,
         ts_rng_wr,
-        num_traces=100,
+        num_traces=10000,
         num_samples=nsamples
     )
 

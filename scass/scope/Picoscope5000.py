@@ -55,6 +55,8 @@ class Picoscope5000(Scope):
         """
         Return the most recently captured raw signal data for the supplied 
         channel as a numpy array.
+        Returns at most numSamples samples. If numSamples is zero, the
+        maximum number of samples per capture are returned.
         """
         assert(isinstance(channel,ScopeChannel))
         assert(channel.channel_id in self._channels)
@@ -100,7 +102,8 @@ class Picoscope5000(Scope):
             sampleFreq,
             numSamples
         )
-        return (freq,nsamples)
+        self._max_samples = nsamples
+        return freq
 
 
     def setSamplingResolution(self, resolution):

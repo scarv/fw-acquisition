@@ -1,6 +1,8 @@
 
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 from . import ScopeChannel
 
 class Scope(object):
@@ -13,7 +15,13 @@ class Scope(object):
         Initialise the new scope object.
         """
         self._channels     = {}
+        self._max_samples  = -1
 
+    @property
+    def max_samples(self):
+        """Get the maximum number of samples per trace, given the current
+        scope configuration"""
+        return self._max_samples
 
     def getChannel(self, cid):
         """Return the ScopeChannel object corresponding to the supplied cid"""
@@ -33,6 +41,8 @@ class Scope(object):
         """
         Return the most recently captured raw signal data for the supplied 
         channel as a numpy array.
+        Returns at most numSamples samples. If numSamples is zero, the
+        maximum number of samples per capture are returned.
         """
         assert(isinstance(channel,ScopeChannel))
         assert(channel in self._channels)
@@ -88,17 +98,48 @@ class Scope(object):
 
     def findTriggerWindowSize(self, trigger_signal):
         """
-        Finds the index of the last sample in the trigger signal which 
-        falls below 50% its maximum value.
-        param trigger_signal is a numpy array.
+        First finds the mean value of a trigger signal trace, then
+        counts the number of samples in the signal above that value and
+        returns it.
+        This represents the number of samples in the signal which fall
+        inside the trigger window.
+        Assumes:
+        - No trigger sample offset.
+        - The trigger window is a region where the trigger is "high"
         """
 
-        threshold = np.amax(trigger_signal) / 4
+        threshold      = np.mean(trigger_signal)
 
-        hi  = trigger_signal.size - 1
-        
-        while(trigger_signal[hi] < threshold):
-            hi = hi - 1
+        print("Trigger Threshold: %s" % str(threshold))
 
-        return  hi
+        tr = trigger_signal.size - 1
+
+        while(trigger_signal[tr] < threshold and tr > 1):
+            tr -= 1
+
+        tr = min(trigger_signal.size-1,tr+100)
         
+        return tr
+
+    def plotSingleCapture(self, target,nsamples):
+        """
+        Plot a single experiment run and display it.
+        Shows the trigger signal and power signal overlayed in the
+        same plot.
+        """
+
+        self.runCapture()
+        target.doRunExperiment()
+
+        while(not self.scopeReady()):
+            pass
+
+        traces = [self.getRawChannelData(c,nsamples) for c in self._channels.values()]
+
+        plt.clf()
+        
+        for t in traces:
+            plt.plot(t, linewidth=0.1)
+
+        plt.show()
+
