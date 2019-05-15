@@ -22,6 +22,9 @@ def parse_args():
     parser.add_argument("--graph-ttest",type=str, default = None,
         help="If set, write the T statistic trace graph to this file.")
     
+    parser.add_argument("--graph-avg-trace",type=str, default = None,
+        help="If set, write the average traces for each set to this file")
+    
     parser.add_argument("trs_fixed",type=argparse.FileType("rb"),
         help="File path to store fixed data trace set")
 
@@ -64,8 +67,28 @@ def main():
     if(args.graph_ttest):
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
         plt.clf()
+        fig = plt.gcf()
+        plt.tight_layout
+        plt.title("TTest Results")
+        plt.xlabel("Sample")
+        plt.ylabel("Leakage")
         plt.plot(ttest.ttrace)
+        fig.set_size_inches(10,5,forward=True)
         plt.savefig(args.graph_ttest)
+
+    if(args.graph_avg_trace):
+        log.info("Writing Average Traces Graph: %s" % args.graph_avg_trace)
+        plt.clf()
+        fig,ax=plt.subplots()
+        plt.tight_layout
+        plt.title("Average Traces")
+        plt.xlabel("Sample")
+        plt.ylabel("Power Variation")
+        plt.plot(ts_fixed.averageTrace() ,linewidth=0.1,label="Fixed")
+        plt.plot(ts_random.averageTrace(),linewidth=0.1,label="Random")
+        fig.set_size_inches(10,5,forward=True)
+        legend=ax.legend(loc="upper right")
+        plt.savefig(args.graph_avg_trace)
     
 
 if(__name__ == "__main__"):
