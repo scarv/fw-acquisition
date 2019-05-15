@@ -138,8 +138,8 @@ class TTestCapture(object):
             fixed_data = random.choice([True,False])
             tdata      = None
 
-            if(fixed_data) :
-                tdata       = self.update_target_fixed_data()
+            if(fixed_data):
+                tdata       = self.__fixed_value
             else:
                 tdata       = self.update_target_random_data()
 

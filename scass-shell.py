@@ -86,6 +86,8 @@ def main():
 
     scope.setSamplingResolution("8")
 
+    scope.dumpConfig("/tmp/picoscope5000_config.cfg")
+
     nsamples                = 20000
     sample_freq             = scope.setSamplingFrequency(200e6, nsamples)
     nsamples                = min(20000,scope.max_samples)
@@ -152,7 +154,7 @@ def main():
         chan_s,
         ts_fix_wr,
         ts_rng_wr,
-        num_traces=10000,
+        num_traces=100000,
         num_samples=nsamples
     )
 

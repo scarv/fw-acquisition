@@ -51,15 +51,19 @@ class Picoscope5000(Scope):
         )
 
 
-    def getRawChannelData(self, channel, numSamples = 0):
+    def getRawChannelData(self, channel, numSamples = None):
         """
         Return the most recently captured raw signal data for the supplied 
         channel as a numpy array.
         Returns at most numSamples samples. If numSamples is zero, the
         maximum number of samples per capture are returned.
+        If numSamples is None, then self.num_samples are returned.
         """
         assert(isinstance(channel,ScopeChannel))
         assert(channel.channel_id in self._channels)
+
+        if(numSamples == None):
+            numSamples = self._num_samples
 
         data, nsamples,overflow = self.__scope.getDataRaw(
             channel = channel.channel_id,
@@ -75,6 +79,8 @@ class Picoscope5000(Scope):
         ScopeTrigger object should be an integer, representing miliseconds.
         """
         assert(isinstance(trigger, ScopeTrigger))
+
+        self._trigger = trigger
 
         direction = "Rising"
         if(trigger.direction == ScopeTrigger.RISING):
@@ -108,6 +114,7 @@ class Picoscope5000(Scope):
 
     def setSamplingResolution(self, resolution):
         """Set the resolution of the sample values"""
+        self._resolution = resolution
         self.__scope.setResolution(resolution)
 
 

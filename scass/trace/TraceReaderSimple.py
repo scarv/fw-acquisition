@@ -22,7 +22,7 @@ class TraceReaderSimple(TraceReaderBase):
         fdtype = np.dtype(headerbytes)
 
         if(self.dtype == None):
-            self.dtype == fdtype
+            self.dtype = fdtype
         elif(self.dtype != fdtype):
             raise TypeError("Expected dtype %s, got %s" % (
                 self.dtype, fdtype))
