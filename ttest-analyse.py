@@ -72,7 +72,7 @@ def main():
         plt.title("TTest Results")
         plt.xlabel("Sample")
         plt.ylabel("Leakage")
-        plt.plot(ttest.ttrace)
+        plt.plot(ttest.ttrace, linewidth=0.1)
         fig.set_size_inches(10,5,forward=True)
         plt.savefig(args.graph_ttest)
 
