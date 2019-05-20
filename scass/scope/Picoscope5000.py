@@ -109,6 +109,7 @@ class Picoscope5000(Scope):
             numSamples
         )
         self._max_samples = nsamples
+        self._sample_freq = freq
         return freq
 
 
