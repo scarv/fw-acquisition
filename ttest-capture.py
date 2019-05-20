@@ -26,6 +26,12 @@ def parse_args():
     parser.add_argument("-k","--keep-data",action="store_true",
         help="Store input data with the captured traces")
     
+    parser.add_argument("-f","--fixed-value",type=str, default="",
+        help="A hex string representing the 'fixed' ttest value to use. If not set, a random value is generated.")
+
+    parser.add_argument("-l", "--logfile", type=str,default=None,
+        help="Log TTest information and progress to this file.)")
+    
     parser.add_argument("target",type=str,
         help="TTY port to connect too when communicating with the target")
     
@@ -49,6 +55,12 @@ def main():
     Main function for the tool script
     """
     args    = parse_args()
+
+    if(args.logfile != None):
+        log.basicConfig(filename=args.logfile, filemode="w",level=log.DEBUG)
+    else:
+        log.basicConfig(level=log.DEBUG)
+    log.getLogger().addHandler(log.StreamHandler())
 
     log.info("Connecting to %s @ %d"%(args.target,args.baud))
 
@@ -125,21 +137,38 @@ def main():
         num_samples = window_size
     )
 
+    if(args.fixed_value != ""):
+        hexstr = args.fixed_value
+        if(hexstr.startswith("0x")):
+            hexstr = hexstr[2:]
+        ttest.fixed_value = bytes.fromhex(hexstr)
+
     log.info("Keep Input Data: %s" % str(args.keep_data))
     ttest.store_input_with_trace = args.keep_data
 
+    prepared = ttest.prepareTTest()
+    
+    if(not prepared):
+        return 1
+
+    fixed_value_str = ''.join(format(x, '02x') for x in ttest.fixed_value)
+    log.info("Fixed Value    : 0x%s" % fixed_value_str)
+    log.info("Running TTest Capture...")
+
     ttest.runTTest()
     
-    log.info("Fixed traces  : %d" % ts_fixed.traces_written)
-    log.info("Random traces : %d" % ts_random.traces_written)
+    log.info("TTest Capture Finished")
+    log.info("Fixed traces   : %d" % ts_fixed.traces_written)
+    log.info("Random traces  : %d" % ts_random.traces_written)
 
     ts_fixed.close()
     ts_random.close()
+
+    log.info("Finished Successfully")
 
     return 0
 
 
 if(__name__ == "__main__"):
-    log.basicConfig(level=log.DEBUG)
     sys.exit(main())
 

@@ -2,6 +2,8 @@
 import random
 import secrets
 
+import logging as log
+
 import numpy as np
 
 from tqdm    import tqdm
@@ -81,12 +83,31 @@ class TTestCapture(object):
         self.num_traces     = num_traces
         self.min_traces     = num_traces/2
 
+        self.__fixed_value  = None
+
         # Store test input data with each trace?
         self.store_input_with_trace = False
 
         # Length of experiment data array on the target.
         self.input_data_len = None
 
+    
+    @property
+    def fixed_value(self):
+        """
+        Return a byte array representing the fixed value used in the ttest.
+        Note that unless manually set, this may return None until the
+        runTTest function is called.
+        """
+        return self.__fixed_value
+
+    @fixed_value.setter
+    def fixed_value(self,v):
+        """
+        Set the fixed value used in the ttest. If none is set, then
+        a random value is generated.
+        """
+        self.__fixed_value = v
 
     def update_target_fixed_data(self):
         """
@@ -95,7 +116,12 @@ class TTestCapture(object):
 
         Returns: The fixed data value as a byte string.
         """
-        return secrets.token_bytes(self.input_data_len)
+
+        if(self.__fixed_value == None):
+            
+            self.__fixed_value = secrets.token_bytes(self.input_data_len)
+
+        return self.__fixed_value
 
     
     def update_target_random_data(self):
@@ -108,30 +134,42 @@ class TTestCapture(object):
         return secrets.token_bytes(self.input_data_len)
 
 
-    def __prepare(self):
+    def prepareTTest(self):
         """
         Called once at the start of the data capture, used to gather
         information on the target.
         - Gets length of input data
         - Runs the target.doInitExperiment() function
         - Generates a *random* fixed value to use.
+        Returns true if preparation succeeded, False otherwise.
         """
 
         # Get the length of the target experiment data array.
         self.input_data_len = self.target.doGetInputDataLength()
         self.__fixed_value  = self.update_target_fixed_data()
 
-        assert(len(self.__fixed_value) == self.input_data_len)
+        try:
+            assert(len(self.__fixed_value) == self.input_data_len)
+        except AssertionError as e:
+            log.error(
+                "Fixed value should be %d bytes long, but got %d bytes." %(
+                self.input_data_len,len(self.__fixed_value))
+            )
+            return False
         
-        self.target.doInitExperiment()
+        try:
+            self.target.doInitExperiment()
+        except Exception as e:
+            log.error("Failed to initialise experiment: %s" % str(e))
+            return False
+
+        return True
 
 
     def runTTest(self):
         """
         Runs the ttest data capture.
         """
-
-        self.__prepare()
 
         for i in self.__progress_bar_func(range(0,self.num_traces)):
             
