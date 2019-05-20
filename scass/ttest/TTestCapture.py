@@ -83,7 +83,7 @@ class TTestCapture(object):
         self.num_traces     = num_traces
         self.min_traces     = num_traces/2
 
-        self.__fixed_value  = None
+        self._fixed_value   = None
 
         # Store test input data with each trace?
         self.store_input_with_trace = False
@@ -99,7 +99,7 @@ class TTestCapture(object):
         Note that unless manually set, this may return None until the
         runTTest function is called.
         """
-        return self.__fixed_value
+        return self._fixed_value
 
     @fixed_value.setter
     def fixed_value(self,v):
@@ -107,7 +107,7 @@ class TTestCapture(object):
         Set the fixed value used in the ttest. If none is set, then
         a random value is generated.
         """
-        self.__fixed_value = v
+        self._fixed_value = v
 
     def update_target_fixed_data(self):
         """
@@ -117,11 +117,11 @@ class TTestCapture(object):
         Returns: The fixed data value as a byte string.
         """
 
-        if(self.__fixed_value == None):
+        if(self._fixed_value == None):
             
-            self.__fixed_value = secrets.token_bytes(self.input_data_len)
+            self._fixed_value = secrets.token_bytes(self.input_data_len)
 
-        return self.__fixed_value
+        return self._fixed_value
 
     
     def update_target_random_data(self):
@@ -146,14 +146,14 @@ class TTestCapture(object):
 
         # Get the length of the target experiment data array.
         self.input_data_len = self.target.doGetInputDataLength()
-        self.__fixed_value  = self.update_target_fixed_data()
+        self._fixed_value  = self.update_target_fixed_data()
 
         try:
-            assert(len(self.__fixed_value) == self.input_data_len)
+            assert(len(self._fixed_value) == self.input_data_len)
         except AssertionError as e:
             log.error(
                 "Fixed value should be %d bytes long, but got %d bytes." %(
-                self.input_data_len,len(self.__fixed_value))
+                self.input_data_len,len(self._fixed_value))
             )
             return False
         
@@ -177,7 +177,7 @@ class TTestCapture(object):
             tdata      = None
 
             if(fixed_data):
-                tdata       = self.__fixed_value
+                tdata       = self._fixed_value
             else:
                 tdata       = self.update_target_random_data()
 
@@ -214,10 +214,6 @@ class TTestCapture(object):
         self.ts_fixed.flushTraces()
 
     # ------------------
-
-    @property
-    def fixed_value(self):
-        return self.__fixed_value
 
     @property
     def progress_bar(self):
