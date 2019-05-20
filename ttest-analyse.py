@@ -24,6 +24,9 @@ def parse_args():
     
     parser.add_argument("--graph-avg-trace",type=str, default = None,
         help="If set, write the average traces for each set to this file")
+
+    parser.add_argument("--critical-value",type=float,default=4.5,
+        help="Critical value for TTest threshold")
     
     parser.add_argument("trs_fixed",type=argparse.FileType("rb"),
         help="File path to store fixed data trace set")
@@ -73,6 +76,16 @@ def main():
         plt.xlabel("Sample")
         plt.ylabel("Leakage")
         plt.plot(ttest.ttrace, linewidth=0.1)
+
+        plt.plot(
+            [args.critical_value]*ttest.ttrace.size,
+            linewidth=0.25,color="red"
+        )
+        plt.plot(
+            [-args.critical_value]*ttest.ttrace.size,
+            linewidth=0.25,color="red"
+        )
+
         fig.set_size_inches(10,5,forward=True)
         plt.savefig(args.graph_ttest)
 
