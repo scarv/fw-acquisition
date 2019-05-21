@@ -48,13 +48,17 @@ def parse_args():
         help="File path to store fixed data trace set")
     
 
-    return parser.parse_args()
+    return parser
 
-def main():
+def main(argparser,ttest_class = scass.ttest.TTestCapture):
     """
     Main function for the tool script
+    parameters:
+    argparser  - instance of argparse.ArgumentParser
+    ttest_class - ttest capture class, must be an
+            instanceof(scass.ttest.TTestCapture)
     """
-    args    = parse_args()
+    args    = argparser.parse_args()
 
     if(args.logfile != None):
         log.basicConfig(filename=args.logfile, filemode="w",level=log.DEBUG)
@@ -126,7 +130,7 @@ def main():
     ts_random   = scass.trace.TraceWriterSimple(
         args.trs_random, sig_power.dtype)
 
-    ttest       = scass.ttest.TTestCapture(
+    ttest       = ttest_class(
         target,
         scope,
         scope.trigger_channel,
@@ -170,5 +174,13 @@ def main():
 
 
 if(__name__ == "__main__"):
-    sys.exit(main())
+
+    argparser = parse_args()
+
+    sys.exit(
+        main(
+            argparser,
+            scass.ttest.TTestCapture
+        )
+    )
 
