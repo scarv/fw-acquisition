@@ -105,7 +105,7 @@ def main():
     
 
 if(__name__ == "__main__"):
-    log.basicConfig(level=log.DEBUG)
+    log.basicConfig(level=log.INFO)
     sys.exit(main())
 
 
