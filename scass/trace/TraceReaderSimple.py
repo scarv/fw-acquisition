@@ -1,6 +1,8 @@
 
 import io
 
+import logging as log
+
 import numpy as np
 
 from .TraceReaderBase import TraceReaderBase
@@ -50,7 +52,7 @@ class TraceReaderSimple(TraceReaderBase):
             auxdata = None
             
             if(alen > 0):
-                np.fromfile(self._fh, dtype=np.uint8,count=alen)
+                auxdata = np.fromfile(self._fh, dtype=np.uint8,count=alen)
 
             self.traces.append(trace)
             self.aux_data.append(auxdata)
