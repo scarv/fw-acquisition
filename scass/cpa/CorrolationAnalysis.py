@@ -82,7 +82,10 @@ class CorrolationAnalysis(object):
             #print("col_H_norm    Shape: %s" % str(col_H_norm.shape))
             #print("col_H_norm_sq Shape: %s" % str(col_H_norm_sq.shape))
 
-            c_out[j]        = abs(top / bottom)
+            if(bottom == 0):
+                c_out[j] = 0.0
+            else:
+                c_out[j]        = abs(top / bottom)
 
             #print("top / bottom       : %f / %f = %f" %(top,bottom,c_out[j]))
 
