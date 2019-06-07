@@ -91,6 +91,8 @@ class TTestCapture(object):
         # Length of experiment data array on the target.
         self.input_data_len = None
 
+        self.expect_fixed_data_len=-1
+
     
     @property
     def fixed_value(self):
@@ -148,12 +150,18 @@ class TTestCapture(object):
         self.input_data_len = self.target.doGetInputDataLength()
         self._fixed_value  = self.update_target_fixed_data()
 
+        exp_fix_len = self.input_data_len
+        if(self.expect_fixed_data_len != -1):
+            exp_fix_len = self.expect_fixed_data_len
+        
+        log.info("Expected fixed data len: %d" % exp_fix_len)
+
         try:
-            assert(len(self._fixed_value) == self.input_data_len)
+            assert(len(self._fixed_value) == exp_fix_len)
         except AssertionError as e:
             log.error(
                 "Fixed value should be %d bytes long, but got %d bytes." %(
-                self.input_data_len,len(self._fixed_value))
+                exp_fix_len,len(self._fixed_value))
             )
             return False
         

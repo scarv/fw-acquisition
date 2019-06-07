@@ -29,6 +29,9 @@ def parse_args():
     parser.add_argument("-f","--fixed-value",type=str, default="",
         help="A hex string representing the 'fixed' ttest value to use. If not set, a random value is generated.")
 
+    parser.add_argument("--fixed-value-len",type=int,default=-1,
+        help="Force the expected fixed value length to this value, rather than what is reported by the target device. Used when some pre-processing of fixed data is done for experiment specific t-tests.")
+
     parser.add_argument("-l", "--logfile", type=str,default=None,
         help="Log TTest information and progress to this file.)")
     
@@ -149,6 +152,8 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
 
     log.info("Keep Input Data: %s" % str(args.keep_data))
     ttest.store_input_with_trace = args.keep_data
+
+    ttest.expect_fixed_data_len = args.fixed_value_len
 
     prepared = ttest.prepareTTest()
     
