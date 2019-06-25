@@ -29,9 +29,8 @@ class CPAModelHammingWeightD(CPAModel):
         """
         count = 0.0
         
-        for b in d:
-            for i in range(0,8):
-                count += float((b >> i) & 0x1)
+        for i in range(0,8):
+            count += float((d >> i) & 0x1)
 
         return count
 
@@ -48,9 +47,8 @@ class CPAModelHammingDistance(CPAModel):
         """
         count = 0.0
         
-        for (a,b) in zip(d,k):
-            axb = a ^ b
-            for i in range(0,8):
-                count += float((axb >> i) & 0x1)
+        axb = d ^ k
+        for i in range(0,8):
+            count += float((axb >> i) & 0x1)
 
         return count

@@ -1,9 +1,13 @@
 
+import logging as log
+
 import numpy as np
 
 from tqdm import tqdm
 
 from ..trace.TraceSet import TraceSet
+
+from .AES import sbox as aes_sbox
 
 class CorrolationAnalysis(object):
     """
@@ -11,7 +15,7 @@ class CorrolationAnalysis(object):
     traces.
     """
 
-    def __init__(self, traces):
+    def __init__(self, traces, K = 256, keyBytes = 16, messageBytes=16):
         """
         Create a new CorrolationAnalysis object which will operate
         on the supplied traces.
@@ -20,74 +24,148 @@ class CorrolationAnalysis(object):
         ----------
         traces - TraceSet
             The set of traces to work with
+        K - int
+            Number of possible key hypotheses to consider
+        keyBytes - int
+            Number of bytes per key
+        messageBytes - int
+            Number of bytes per message
         """
 
-        self.tmat = traces.tracesAs2dArray()
-        self.amat = traces.auxDataAs2dArray()
-        self.tlen, self.tnum = self.tmat.shape
+        self.tmat   = traces.tracesAs2dArray().transpose()
+        self.amat   = traces.auxDataAs2dArray()
+        self._tnum  = traces.num_traces
+        self._tlen  = traces.trace_length
 
-    def computeH(self, model, max_k = 1):
+        # split key and message into two different chunks
+        self.keymat = self.amat[:, 0:keyBytes]
+        self.msgmat = self.amat[:,keyBytes:keyBytes+messageBytes]
 
-        H = np.array(
-            [model.getEstimate(self.amat[d,:],k) 
-                for k in range(0,max_k)
-                    for d in range(0,self.tnum)],
-            dtype=np.float32,
-            order='C'
-        )
+        self.type_V = np.uint8
+        self.type_H = np.uint8
+
+        self._k     = K
+
+
+    def _computeV(self, d, k_guess, V,i,j):
+        """
+        Computes the intermedate value for a given message byte d
+        and key byte guess k_guess.
+        """
+        try:
+            return aes_sbox[d^k_guess]
+        except:
+            print(hex(d  ))
+            print(hex(k_guess  ))
+            print(hex(d^k_guess))
+
+    def computeV(self, msgbyte = 1):
+        """
+        Compute the matrix of possible intermediate values to attack for
+        a given set of key hypotheses.
+
+        Returns:
+            A DxK matrix of values.
+        """
+        V_shape = (self.D, self.K)
+        V       = np.empty(V_shape, dtype=self.type_V, order='C')
+
+        for i in tqdm(range(0,self.D)):
+            for j in range(0,self.K):
+                msgb   = self.msgmat[i,msgbyte]
+                V[i,j] = self._computeV(msgb,j,V,i,j)
+
+        return V
+
+    def hw(self, x):
+        """Return hamming weight of x"""
+        c = 0
+        while x:
+            c  += 1
+            x &= x-1
+        return c
+
+    def computeH(self, V):
+        """
+        Compute the hypothesised power consumption values from
+        the V matrix.
+        """
+        H_shape = (self.D, self.K)
+        H       = np.empty(H_shape, dtype=self.type_H, order='C')
+        
+        for i in tqdm(range(0,self.D)):
+            for j in range(0,self.K):
+                ib = V[i,j]
+                
+                # Just do hamming weight for now.
+                H[i,j] = self.hw(ib)
 
         return H
-    
-    def getCorrolation(self, H):
+
+    def computeR(self, H):
         """
-        Take a single value/power estimate and turn it into an N length
-        vector where N is the number of traces in tmat.
-        Then compute the per-sample corrolation over the trace set, and
-        return the 1*M corrolation array, where M is the length of the
-        traces in the set.
-        i = num traces = self.tnum - i = 0...(D-1)
-        j = trace len  = self.tlen - k = 0...(K-1)
+        Compute the matrix of correlation coefficients for each
+        hypothesis.
         """
 
-        c_out = np.zeros(self.tlen,dtype=np.float32)
+        R_shape = (self.K, self.T)
+        R       = np.empty(R_shape, dtype = np.float32, order='C')
+
+        T       = self.tmat
+
+        H_avgs  = np.mean(H, axis=0)
+        T_avgs  = np.mean(T, axis=1)
+
+        #log.info("H_avgs Shape: %s" % str(H_avgs.shape))
+        #log.info("T_avgs Shape: %s" % str(T_avgs.shape))
+
+        best_k  = 0.0
+        ind_k   = 0
+
+        for i in tqdm(range(0,self.K)):
+
+            H_avg   = H_avgs[i]
+            H_col   = H[:,i]
+            H_col_d = H_col - H_avg
+            H_col_sq_sum = np.dot(H_col_d,H_col_d)
         
-        #print("H Shape: %s" % str(H.shape))
-        #print("T Shape: %s" % str(self.tmat.shape))
+            #log.info("H_col    Shape: %s" % str(H_col   .shape))
+            #log.info("H_col_d  Shape: %s" % str(H_col_d .shape))
 
-        col_H_avgs = np.mean(H        ,axis=0)
-        col_T_avgs = np.mean(self.tmat,axis=1)
+            for j in range(0,self.T):
 
-        #print("col_H_avgs Shape: %s" % str(col_H_avgs.shape))
-        #print("col_T_avgs Shape: %s" % str(col_T_avgs.shape))
-        #print("col_H_avgs      : %s" % str(col_H_avgs))
-
-        i = 0
-        for j in range(0,self.tlen):
-
-            col_T           = self.tmat[j,:]
-            col_T_norm      = col_T - col_T_avgs[j]
-            col_T_norm_sq   = np.square(col_T_norm)
-
-            col_H_norm      = H - col_H_avgs
-            col_H_norm_sq   = np.square(col_H_norm)
-
-            top             = np.sum(np.multiply(col_H_norm, col_T_norm))
-            bottom          = np.sum(np.multiply(col_H_norm_sq, col_T_norm_sq))
+                T_avg   = T_avgs[i]
+                T_col   = T[:,j]
+                T_col_d = T_col - T_avg
+                T_col_sq_sum = np.dot(T_col_d, T_col_d)
             
-            bottom          = np.sqrt(bottom)
-        
-            #print("col_T         Shape: %s" % str(col_T.shape))
-            #print("col_T_norm    Shape: %s" % str(col_T_norm.shape))
-            #print("col_T_norm_sq Shape: %s" % str(col_T_norm_sq.shape))
-            #print("col_H_norm    Shape: %s" % str(col_H_norm.shape))
-            #print("col_H_norm_sq Shape: %s" % str(col_H_norm_sq.shape))
+                #log.info("T_col    Shape: %s" % str(T_col   .shape))
+                #log.info("T_col_d  Shape: %s" % str(T_col_d .shape))
 
-            if(bottom == 0):
-                c_out[j] = 0.0
-            else:
-                c_out[j]        = abs(top / bottom)
+                top = np.dot(H_col_d, T_col_d)
 
-            #print("top / bottom       : %f / %f = %f" %(top,bottom,c_out[j]))
+                bot = np.sqrt(H_col_sq_sum * T_col_sq_sum)
 
-        return c_out
+                R[i,j] = np.abs(top/bot)
 
+                if R[i,j]>best_k:
+                    best_k = R[i,j]
+                    ind_k  = i
+
+        return (ind_k,R)
+    
+
+    @property
+    def K(self):
+        """Number of possible key guesses"""
+        return self._k
+    
+    @property
+    def D(self):
+        """Number of traces"""
+        return self._tnum
+    
+    @property
+    def T(self):
+        """Length of each trace"""
+        return self._tlen
