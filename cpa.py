@@ -10,6 +10,7 @@ import array
 import argparse
 import logging as log
 
+from itertools       import repeat
 from multiprocessing import Pool
 
 import numpy as np
@@ -39,6 +40,8 @@ def parse_args(parser):
         help="A hex string representing the expected key value to find in the attack")
     parser.add_argument("--max-traces",type=int,default=None,
         help="Maximum number of traces from the set to include in the attack")
+    parser.add_argument("--threads",type=int,default=4,
+        help="Number of parallel jobs to run.")
 
     return parser
 
@@ -51,6 +54,51 @@ def cpa_process_byte(cpa, b):
     H            = cpa.computeH(V)
     guess,R      = cpa.computeR(H)
     return (guess, R)
+
+
+def cpa_process_byte_and_word(b, cpa_byte, cpa_word, save_path):
+
+    log.info("Computing Byte guess for byte %d" % b)
+    byte_guess, byte_R = cpa_process_byte(cpa_byte, b)
+    
+    log.info("Computing Word guess for byte %d" % b)
+    word_guess, word_R = cpa_process_byte(cpa_word, b)
+
+    fig = plt.figure()
+    plt.clf()
+
+    plt.suptitle("Key guess byte/word: %s (%d) / %s (%d)" % (\
+        hex(byte_guess),byte_guess,hex(word_guess),word_guess))
+    
+    plt.subplot(221)
+    plt.plot(byte_R, linewidth=0.2)
+    
+    plt.subplot(222)
+    plt.plot(byte_R.transpose(), linewidth=0.2)
+    
+    plt.subplot(223)
+    plt.plot(word_R, linewidth=0.2)
+    
+    plt.subplot(224)
+    plt.plot(word_R.transpose(), linewidth=0.2)
+    
+    fig.set_size_inches(20,10,forward=True)
+    plt.savefig("%s/%d.png" % (save_path,b))
+
+    fig.clf()
+    plt.close(fig)
+
+    del byte_R
+    del word_R
+    
+    log.info("Computing guesses for byte %d - Byte: %s, Word: %s" % (
+        b,
+        hex(byte_guess),
+        hex(word_guess)
+    ))
+    
+    return (byte_guess, word_guess)
+
 
 def main(
     args,
@@ -88,56 +136,28 @@ def main(
 
     log.info("Trace Length      : %d" % cpa_byte.T)
     log.info("Trace Count       : %d" % cpa_byte.D)
+    log.info("Running with %d threads." % args.threads)
     #log.info("Aux Data Shape    : %s" % str(cpa.amat.shape))
     #log.info("Trace Data Shape  : %s" % str(cpa.tmat.shape))
 
-    byte_guesses = []
-    word_guesses = []
-
-    for b in tqdm(range(0, args.key_bytes)):
+    byte_guesses = [0] * args.key_bytes
+    word_guesses = [0] * args.key_bytes
+    
+    with Pool(args.threads) as p:
         
-        byte_guess, byte_R = None, None
-        word_guess, word_R = None, None
+        map_arguments = zip(
+            range(0, args.key_bytes),
+            repeat(cpa_byte),
+            repeat(cpa_word),
+            repeat(args.save_path),
+        )
 
-        with Pool(2) as p:
-            
-            process_args = [
-                (cpa_byte,b),
-                (cpa_word,b)
-            ]
-            
-            results = p.starmap(cpa_process_byte,process_args)
+        results = p.starmap(cpa_process_byte_and_word, map_arguments)
 
-            byte_results = results[0]
-            word_results = results[1]
-
-            byte_guess, byte_R = byte_results
-            word_guess, word_R = word_results
-        
-        byte_guesses.append(byte_guess)
-        word_guesses.append(word_guess)
-
-        fig = plt.figure()
-        plt.clf()
-
-        plt.suptitle("Key guess byte/word: %s (%d) / %s (%d)" % (\
-            hex(byte_guess),byte_guess,hex(word_guess),word_guess))
-        
-        plt.subplot(221)
-        plt.plot(byte_R, linewidth=0.2)
-        
-        plt.subplot(222)
-        plt.plot(byte_R.transpose(), linewidth=0.2)
-        
-        plt.subplot(223)
-        plt.plot(word_R, linewidth=0.2)
-        
-        plt.subplot(224)
-        plt.plot(word_R.transpose(), linewidth=0.2)
-        
-        fig.set_size_inches(20,10,forward=True)
-        plt.savefig("%s/%d.png" % (args.save_path,b))
-
+        for i in range(0, args.key_bytes):
+            bg, wg = results[i]
+            byte_guesses[i] = bg
+            word_guesses[i] = wg
 
     byte_guess = array.array('B',byte_guesses).tostring().hex()
     word_guess = array.array('B',word_guesses).tostring().hex()
@@ -175,9 +195,14 @@ def main(
 if(__name__ == "__main__"):
     args        = parse_args(argparser).parse_args()
     if(args.log != ""):
-        log.basicConfig(filename=args.log,filemode="w",level=log.INFO)
+        log.basicConfig(filename=args.log,filemode="w",level=log.INFO,
+            format='%(asctime)s %(levelname)-8s %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S')
     else:
-        log.basicConfig(level=log.INFO)
+        log.basicConfig(level=log.INFO,
+            format='%(asctime)s %(levelname)-8s %(message)s',
+          datefmt='%Y-%m-%d %H:%M:%S')
+    log.getLogger().addHandler(log.StreamHandler(sys.stdout))
     sys.exit(main(args))
 
 

@@ -3,8 +3,6 @@ import logging as log
 
 import numpy as np
 
-from tqdm import tqdm
-
 from ..trace.TraceSet import TraceSet
 
 from .AES import sbox as aes_sbox
@@ -72,7 +70,7 @@ class CorrolationAnalysis(object):
         V_shape = (self.D, self.K)
         V       = np.empty(V_shape, dtype=self.type_V, order='C')
 
-        for i in tqdm(range(0,self.D)):
+        for i in range(0,self.D):
             for j in range(0,self.K):
                 msgb   = self.msgmat[i,msgbyte]
                 V[i,j] = self._computeV(msgb,j,V,i,j)
@@ -99,7 +97,7 @@ class CorrolationAnalysis(object):
         H_shape = (self.D, self.K)
         H       = np.empty(H_shape, dtype=self.type_H, order='C')
         
-        for i in tqdm(range(0,self.D)):
+        for i in range(0,self.D):
             for j in range(0,self.K):
                 ib = V[i,j]
                 
@@ -128,7 +126,7 @@ class CorrolationAnalysis(object):
         best_k  = 0.0
         ind_k   = 0
 
-        for i in tqdm(range(0,self.K)):
+        for i in range(0,self.K):
 
             H_avg   = H_avgs[i]
             H_col   = H[:,i]
