@@ -37,6 +37,8 @@ class CorrolationAnalysis(object):
         self._tnum  = traces.num_traces
         self._tlen  = traces.trace_length
 
+        self.max_traces = self._tnum
+
         # split key and message into two different chunks
         self.keymat = self.amat[:, 0:keyBytes]
         self.msgmat = self.amat[:,keyBytes:keyBytes+messageBytes]
@@ -84,6 +86,10 @@ class CorrolationAnalysis(object):
             c  += 1
             x &= x-1
         return c
+
+    def hd(self, x, y):
+        """Return hamming distance between x and y"""
+        return self.hw(x ^ y)
 
     def computeH(self, V):
         """
@@ -135,7 +141,7 @@ class CorrolationAnalysis(object):
             for j in range(0,self.T):
 
                 T_avg   = T_avgs[i]
-                T_col   = T[:,j]
+                T_col   = T[:self.D,j]
                 T_col_d = T_col - T_avg
                 T_col_sq_sum = np.dot(T_col_d, T_col_d)
             
@@ -163,7 +169,7 @@ class CorrolationAnalysis(object):
     @property
     def D(self):
         """Number of traces"""
-        return self._tnum
+        return min(self._tnum, self.max_traces)
     
     @property
     def T(self):
