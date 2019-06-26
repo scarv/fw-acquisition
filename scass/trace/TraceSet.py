@@ -3,6 +3,23 @@ import numpy as np
 
 from .TraceReaderBase import TraceReaderBase
 
+def ResampleLinear1D(original, targetLen):
+    """
+    Taken from stackoverflow...
+    https://stackoverflow.com/questions/20322079/downsample-a-1d-numpy-array
+    """
+    original = np.array(original, dtype=np.float)
+    index_arr = np.linspace(0, len(original)-1, num=targetLen, dtype=np.float)
+    index_floor = np.array(index_arr, dtype=np.int) #Round down
+    index_ceil = index_floor + 1
+    index_rem = index_arr - index_floor #Remain
+
+    val1 = original[index_floor]
+    val2 = original[index_ceil % len(original)]
+    interp = val1 * (1.0-index_rem) + val2 * index_rem
+    assert(len(interp) == targetLen)
+    return interp
+
 class TraceSet(object):
     """
     A collection of traces which can be subjected to bulk processing,
@@ -93,17 +110,48 @@ class TraceSet(object):
             self.tracesAs2dArray(),
             axis = 1)
 
-    def loadFromTraceReader(self, reader):
+    def loadFromTraceReader(self, reader, n = None):
         """
         Load traces from the supplied trace reader object into
         the set.
         """
         assert(isinstance(reader, TraceReaderBase))
         
-        reader.readTraces()
+        reader.readTraces(n)
 
         self.__traces   = reader.traces
         self.__aux_data = reader.aux_data
+
+
+    def convolveTraces(self, weights):
+        """
+        For each trace in the set, apply the supplied `weights` convolution
+        filter, where weights is "array like". Uses the numpy.convolve
+        function.
+        This operation is destructive. The original traces can only be
+        recovered by re-loading them from somewhere.
+        """
+
+        for i,trace in enumerate(self.__traces):
+            
+            self.__traces[i] = np.convolve(trace, weights, 'same')
+
+    def convolveTracesUniform(self, l):
+        """
+        Calls convolveTraces with an 'l' length convolution filter, where
+        all elements in l are 1.
+        """
+        self.convolveTraces([1]*l)
+
+
+    def subsampleTraces(self, factor):
+        
+        ntlen = int(self.trace_length / factor)
+        
+        for i in range(0,len(self.__traces)):
+
+            newtrace = ResampleLinear1D(self.__traces[i], ntlen)
+            self.__traces[i] = newtrace
 
 
     @property

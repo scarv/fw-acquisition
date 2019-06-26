@@ -73,7 +73,7 @@ class CorrolationAnalysis(object):
         for i in range(0,self.D):
             for j in range(0,self.K):
                 msgb   = self.msgmat[i,msgbyte]
-                V[i,j] = self._computeV(msgb,j,V,i,j)
+                V[i,j] = self._computeV(msgb,j,V,i,msgbyte)
 
         return V
 
@@ -156,7 +156,7 @@ class CorrolationAnalysis(object):
                     best_k = R[i,j]
                     ind_k  = i
 
-        return (ind_k,R)
+        return (ind_k,best_k,R)
     
 
     @property
