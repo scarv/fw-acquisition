@@ -40,6 +40,8 @@ def parse_args(parser):
         help="A hex string representing the expected key value to find in the attack")
     parser.add_argument("--max-traces",type=int,default=None,
         help="Maximum number of traces from the set to include in the attack")
+    parser.add_argument("--max-samples",type=int,default=None,
+        help="Maximum number of samples from the start of a trace to consider.")
     parser.add_argument("--threads",type=int,default=4,
         help="Number of parallel jobs to run.")
     parser.add_argument("--convolve-len",type=int,default=0,
@@ -63,32 +65,23 @@ def cpa_process_byte(cpa, b):
     return (guess, confidence, R)
 
 
-def cpa_process_byte_and_word(b, cpa_byte, cpa_word, save_path, store_graphs):
+def cpa_process_byte_and_word(b, cpa_byte, save_path, store_graphs):
 
     #log.info("Computing Byte guess for byte %d" % b)
     byte_guess, byte_conf, byte_R = cpa_process_byte(cpa_byte, b)
-    
-    #log.info("Computing Word guess for byte %d" % b)
-    word_guess, word_conf, word_R = cpa_process_byte(cpa_word, b)
 
     if(store_graphs):
         fig = plt.figure()
         plt.clf()
 
-        plt.suptitle("Key guess byte/word: %s (%d) / %s (%d)" % (\
-            hex(byte_guess),byte_guess,hex(word_guess),word_guess))
+        plt.suptitle("Key guess byte: %s (%d)" % (\
+            hex(byte_guess),byte_guess,))
         
-        plt.subplot(221)
+        plt.subplot(211)
         plt.plot(byte_R, linewidth=0.2)
         
-        plt.subplot(222)
+        plt.subplot(212)
         plt.plot(byte_R.transpose(), linewidth=0.2)
-        
-        plt.subplot(223)
-        plt.plot(word_R, linewidth=0.2)
-        
-        plt.subplot(224)
-        plt.plot(word_R.transpose(), linewidth=0.2)
         
         fig.set_size_inches(20,10,forward=True)
         plt.savefig("%s/%d.png" % (save_path,b))
@@ -97,17 +90,14 @@ def cpa_process_byte_and_word(b, cpa_byte, cpa_word, save_path, store_graphs):
         plt.close(fig)
 
     del byte_R
-    del word_R
     
-    log.info("Computing guesses for byte %d - Byte: %s (%f), Word: %s (%f)" %(
+    log.info("Computing guesses for byte %d - Byte: %s (%f)" %(
         b,
         hex(byte_guess),
-        byte_conf,
-        hex(word_guess),
-        word_conf
+        byte_conf
     ))
     
-    return (byte_guess, word_guess, byte_conf, word_conf)
+    return (byte_guess, byte_conf)
 
 
 def main(
@@ -124,6 +114,10 @@ def main(
     
     ts_set    = scass.trace.TraceSet()
     ts_set.loadFromTraceReader(ts_set_rd, n=args.max_traces)
+
+    if(args.max_samples):
+        log.info("Trimming traces to max %d samples" % args.max_samples)
+        ts_set.trimTraces(args.max_samples)
 
     if(args.graphs):
         log.info("Will save graphs")
@@ -142,18 +136,10 @@ def main(
         messageBytes=args.message_bytes
     )
     
-    cpa_word = analyser(
-        ts_set,
-        keyBytes=args.key_bytes,
-        messageBytes=args.message_bytes
-    )
-    
     cpa_byte.var_to_attack = "sbox_byte"
-    cpa_word.var_to_attack = "sbox_word"
 
     if(args.max_traces):
         cpa_byte.max_traces = args.max_traces
-        cpa_word.max_traces = args.max_traces
 
     log.info("Trace Length      : %d" % cpa_byte.T)
     log.info("Trace Count       : %d" % cpa_byte.D)
@@ -162,17 +148,14 @@ def main(
     #log.info("Trace Data Shape  : %s" % str(cpa.tmat.shape))
 
     byte_guesses    = [0] * args.key_bytes
-    word_guesses    = [0] * args.key_bytes
     
     byte_confidence = [0.0] * args.key_bytes
-    word_confidence = [0.0] * args.key_bytes
     
     with Pool(args.threads) as p:
         
         map_arguments = zip(
             range(0, args.key_bytes),
             repeat(cpa_byte),
-            repeat(cpa_word),
             repeat(args.save_path),
             repeat(args.graphs),
         )
@@ -180,23 +163,17 @@ def main(
         results = p.starmap(cpa_process_byte_and_word, map_arguments)
 
         for i in range(0, args.key_bytes):
-            bg, wg, bc, wc      = results[i]
+            bg, bc              = results[i]
             byte_guesses[i]     = bg
-            word_guesses[i]     = wg
             byte_confidence[i]  = bc
-            word_confidence[i]  = wc
 
     byte_guess = array.array('B',byte_guesses).tostring().hex()
-    word_guess = array.array('B',word_guesses).tostring().hex()
 
     log.info("Byte Confidence: %s" % str(byte_confidence))
-    log.info("Word Confidence: %s" % str(word_confidence))
     
     log.info("Byte Confidence: %f" % (sum(byte_confidence)/args.key_bytes))
-    log.info("Word Confidence: %f" % (sum(word_confidence)/args.key_bytes))
     
     log.info("Byte Key Guess: %s" % byte_guess)
-    log.info("Word Key Guess: %s" % word_guess)
 
     expected_key = ""
 
@@ -208,19 +185,15 @@ def main(
         log.info("Expected Key  : %s" % hexstr)
 
         byte_distances = [0] * args.key_bytes
-        word_distances = [0] * args.key_bytes
 
         for i in range(0, args.key_bytes):
             byte_distances[i] = cpa_byte.hd(byte_guesses[i], expected_key[i])
-            word_distances[i] = cpa_word.hd(word_guesses[i], expected_key[i])
 
         byte_distance = sum(byte_distances)
-        word_distance = sum(word_distances)
 
         byte_score = 100 * (1.0 - byte_distance / (8*args.key_bytes))
-        word_score = 100 * (1.0 - word_distance / (8*args.key_bytes))
 
-        log.info("Score: Byte: %03f, Word %03f" % (byte_score,word_score))
+        log.info("Score: Byte: %03f" % byte_score)
 
     log.info("--- Finish ---")
     

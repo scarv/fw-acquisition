@@ -73,6 +73,19 @@ class TraceSet(object):
         
         self.__aux_data.append(aux_data)
 
+    def trimTraces(self, N):
+        """
+        Trim traces so that they are all N elements long, where N is less
+        than the current length.
+        """
+        
+        L = min(N,self.trace_length)
+
+        for i in range(0, self.num_traces):
+
+            self.__traces[i] = self.__traces[i][0:L]
+
+
     def tracesAs2dArray(self):
         """
         Returns a 2d ndarray object of all traces, where one row
