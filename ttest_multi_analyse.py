@@ -31,6 +31,9 @@ def parse_args():
     parser.add_argument("--critical-value",type=float,default=4.5,
         help="Critical value for TTest threshold")
     
+    parser.add_argument("--second-order",action="store_true",default=False,
+        help="Do a second order TTest.")
+    
     parser.add_argument("-t","--trace-set",nargs=3,action="append",
         help="Add a TTest trace set to be included in the analysis. "+\
              "Should be of the form: -s <name> <fixed> <random>. "+\
@@ -100,7 +103,11 @@ def main():
         ts_random   = scass.trace.TraceSet()
         ts_random.loadFromTraceReader(ts_random_rd)
 
-        ttest       = scass.ttest.TTest(ts_fixed, ts_random)
+        ttest       = scass.ttest.TTest(
+            ts_fixed,
+            ts_random,
+            second_order = args.second_order
+        )
 
         fh_fixed.close()
         fh_random.close()

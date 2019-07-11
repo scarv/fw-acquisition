@@ -173,6 +173,21 @@ class TTestCapture(object):
 
         return True
 
+    def preTraceAcquire(self):
+        """
+        Called prior to each trace acquisition and selection of
+        data for that trace.
+        Can be used to update masks and such.
+        """
+        pass
+
+    def getFixedValue(self):
+        """
+        Returns the "fixed" value for the TTest. Can be overriden
+        to update the fixed value to be sent with things like new
+        mask values
+        """
+        return self._fixed_value
 
     def runTTest(self):
         """
@@ -180,12 +195,14 @@ class TTestCapture(object):
         """
 
         for i in self.__progress_bar_func(range(0,self.num_traces)):
+
+            self.preTraceAcquire()
             
             fixed_data = random.choice([True,False])
             tdata      = None
 
             if(fixed_data):
-                tdata       = self._fixed_value
+                tdata       = self.getFixedValue()
             else:
                 tdata       = self.update_target_random_data()
 

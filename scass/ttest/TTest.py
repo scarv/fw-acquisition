@@ -8,7 +8,7 @@ class TTest(object):
     Class for performing Welch's TTest on trace sets.
     """
 
-    def __init__(self, ts_fixed, ts_random):
+    def __init__(self, ts_fixed, ts_random, second_order=False):
         """
         Create a new TTest object, perform the ttest, and produce
         useful outputs.
@@ -25,6 +25,7 @@ class TTest(object):
 
         self.ts_fixed   = ts_fixed
         self.ts_random  = ts_random
+        self.second_order = second_order
 
         self.__ttrace     = None
         
@@ -37,6 +38,10 @@ class TTest(object):
 
         avg_fixed = self.ts_fixed.averageTrace()
         avg_random= self.ts_random.averageTrace()
+
+        if(self.second_order):
+            avg_fixed = np.square(avg_fixed )
+            avg_random= np.square(avg_random)
 
         avg_sum   = avg_fixed - avg_random
 

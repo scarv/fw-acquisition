@@ -27,6 +27,9 @@ def parse_args():
 
     parser.add_argument("--critical-value",type=float,default=4.5,
         help="Critical value for TTest threshold")
+
+    parser.add_argument("--second-order",action="store_true",default=False,
+        help="Do a second order TTest.")
     
     parser.add_argument("trs_fixed",type=argparse.FileType("rb"),
         help="File path to store fixed data trace set")
@@ -65,7 +68,11 @@ def main():
     log.info("Random traces : %d" % ts_random_rd.traces_read)
 
     log.info("Running TTest...")
-    ttest       = scass.ttest.TTest(ts_fixed, ts_random)
+    ttest       = scass.ttest.TTest (
+        ts_fixed,
+        ts_random,
+        second_order = args.second_order
+    )
 
     if(args.graph_ttest):
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
