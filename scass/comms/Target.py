@@ -107,9 +107,9 @@ class Target(object):
         doGetExperiementDataLength
         """
 
-        self.__sendByte(SCASS_CMD_SET_DATA_IN)
-
-        self.port.write(data)
+        tosend = SCASS_CMD_SET_DATA_IN + data
+        self.port.write(tosend)
+        self.port.flush()
 
         return self.__cmdSuccess()
 

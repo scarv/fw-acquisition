@@ -13,7 +13,7 @@ from ..scope.Scope import Scope
 from ..scope.ScopeChannel import ScopeChannel
 from ..trace import TraceWriterBase
 
-def __no_progress_bar(x):
+def no_progress_bar(x):
     return x
 
 class TTestCapture(object):
@@ -206,6 +206,8 @@ class TTestCapture(object):
             else:
                 tdata       = self.update_target_random_data()
 
+            #print("%d %s" % (len(tdata),tdata.hex()))
+
             self.target.doSetInputData(tdata)
 
             self.scope.runCapture()
@@ -251,5 +253,5 @@ class TTestCapture(object):
         if(v):
             self.__progress_bar_func = tqdm
         else:
-            self.__progress_bar_func = __no_progress_bar
+            self.__progress_bar_func = no_progress_bar
 
