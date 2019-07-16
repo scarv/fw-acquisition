@@ -85,6 +85,19 @@ class TraceSet(object):
 
             self.__traces[i] = self.__traces[i][0:L]
 
+    def stripFront(self, N):
+        """
+        Remove the first N samples from the front of every trace.
+        """
+        for i in range(0, self.num_traces):
+            self.__traces[i] = self.__traces[i][N:]
+
+    def stripBack(self, N):
+        """
+        Remove the last N samples from the end of every trace.
+        """
+        for i in range(0, self.num_traces):
+            self.__traces[i] = self.__traces[i][0:self.trace_length-N]
 
     def tracesAs2dArray(self):
         """
