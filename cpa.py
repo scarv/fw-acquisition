@@ -26,7 +26,7 @@ def parse_args(parser):
     """
     Parse command line arguments to the script
     """
-    parser.add_argument("trace_set",type=argparse.FileType("rb"),
+    parser.add_argument("--trace-set",type=argparse.FileType("rb"),
         help="File path to load trace set from")
     parser.add_argument("--key-bytes",type=int, default=16,
         help="Number of key bytes to guess")
@@ -42,52 +42,59 @@ def parse_args(parser):
         help="Maximum number of traces from the set to include in the attack")
     parser.add_argument("--max-samples",type=int,default=None,
         help="Maximum number of samples from the start of a trace to consider.")
-    parser.add_argument("--threads",type=int,default=4,
-        help="Number of parallel jobs to run.")
+    parser.add_argument("--threads-byte",type=int,default=1,
+        help="Number of key bytes to attack in parallel")
+    parser.add_argument("--threads-corrolation",type=int,default=1,
+        help="Number of threads to use in computing corrolation matrix.")
+
     parser.add_argument("--convolve-len",type=int,default=0,
         help="Blur together the samples in each trace based on an N length filter.")
     parser.add_argument("--subsample-factor",type=int,default=1,
         help="Subsample traces using linear interpolation before processing.")
+    
+    parser.add_argument("--only-guess-first",type=int,default=16,
+        help="Only guess the first N bytes of the key.")
+
+    parser.add_argument("--trim-last",type=int,default=0,
+        help="Trim last N samples from every trace")
 
     parser.add_argument("--graphs",action="store_true",
         help="Write out graphs of results?")
 
     return parser
 
+def write_graphs(byte_guess, byte_R, save_path, b):
+    fig = plt.figure()
+    plt.clf()
 
-def cpa_process_byte(cpa, b):
-    """
-    Runs a CPA attack on the b'th byte using the supplied CPA object.
-    """
-    V            = cpa.computeV(msgbyte = b)
-    H            = cpa.computeH(V)
-    guess,confidence,R      = cpa.computeR(H)
-    return (guess, confidence, R)
+    plt.suptitle("Key guess byte: %s (%d)" % (\
+        hex(byte_guess),byte_guess,))
+    
+    plt.subplot(211)
+    plt.plot(byte_R, linewidth=0.2)
+    
+    plt.subplot(212)
+    plt.plot(byte_R.transpose(), linewidth=0.2)
+    
+    fig.set_size_inches(20,10,forward=True)
+    plt.savefig("%s/%d.png" % (save_path,b))
 
+    fig.clf()
+    plt.close(fig)
 
-def cpa_process_byte_and_word(b, cpa_byte, save_path, store_graphs):
+def cpa_process_byte(b, cpa_byte, save_path, store_graphs, byteCallback):
 
     #log.info("Computing Byte guess for byte %d" % b)
-    byte_guess, byte_conf, byte_R = cpa_process_byte(cpa_byte, b)
+    V                               = cpa_byte.computeV(b)
+    H                               = cpa_byte.computeH(V,b)
+    byte_guess, byte_conf, byte_R   = cpa_byte.computeR(H)
 
+
+    if(byteCallback != None):
+        byteCallback(b, byte_guess, byte_conf, byte_R, save_path,cpa_byte)
+    
     if(store_graphs):
-        fig = plt.figure()
-        plt.clf()
-
-        plt.suptitle("Key guess byte: %s (%d)" % (\
-            hex(byte_guess),byte_guess,))
-        
-        plt.subplot(211)
-        plt.plot(byte_R, linewidth=0.2)
-        
-        plt.subplot(212)
-        plt.plot(byte_R.transpose(), linewidth=0.2)
-        
-        fig.set_size_inches(20,10,forward=True)
-        plt.savefig("%s/%d.png" % (save_path,b))
-
-        fig.clf()
-        plt.close(fig)
+        write_graphs(byte_guess, byte_R, save_path, b)
 
     del byte_R
     
@@ -103,7 +110,8 @@ def cpa_process_byte_and_word(b, cpa_byte, save_path, store_graphs):
 def main(
     args,
     analyser   = scass.cpa.CorrolationAnalysis,
-    powermodel = scass.cpa.CPAModelHammingWeightD
+    powermodel = scass.cpa.CPAModelHammingWeightD,
+    byteCallback = None
     ):
     """
     Main function for the tool script
@@ -114,6 +122,12 @@ def main(
     
     ts_set    = scass.trace.TraceSet()
     ts_set.loadFromTraceReader(ts_set_rd, n=args.max_traces)
+
+    if(args.trim_last >0):
+        log.info("Triming last %d samples from each trace." % args.trim_last)
+        ts_set.trimTraces(ts_set.trace_length-args.trim_last)
+
+    bytes_to_guess = min(args.key_bytes, args.only_guess_first)
 
     if(args.max_samples):
         log.info("Trimming traces to max %d samples" % args.max_samples)
@@ -136,42 +150,58 @@ def main(
         messageBytes=args.message_bytes
     )
     
-    cpa_byte.var_to_attack = "sbox_byte"
+    cpa_byte.num_threads = args.threads_corrolation
 
     if(args.max_traces):
         cpa_byte.max_traces = args.max_traces
 
+    total_threads = args.threads_byte * args.threads_corrolation
+    
+    log.info("Guessing upto %d bytes" % bytes_to_guess)
     log.info("Trace Length      : %d" % cpa_byte.T)
     log.info("Trace Count       : %d" % cpa_byte.D)
-    log.info("Running with %d threads." % args.threads)
+    log.info("Parallelism:")
+    log.info("- Attacking %d bytes in parallel." % args.threads_byte)
+    log.info("- Using %d Threads per byte." % args.threads_corrolation)
+    log.info("- Using %d threads at a time." % total_threads)
     #log.info("Aux Data Shape    : %s" % str(cpa.amat.shape))
     #log.info("Trace Data Shape  : %s" % str(cpa.tmat.shape))
 
-    byte_guesses    = [0] * args.key_bytes
+    byte_guesses    = [0] * bytes_to_guess
     
-    byte_confidence = [0.0] * args.key_bytes
+    byte_confidence = [0.0] * bytes_to_guess
+       
+    map_arguments = zip(
+        range(0, bytes_to_guess),
+        repeat(cpa_byte),
+        repeat(args.save_path),
+        repeat(args.graphs),
+        repeat(byteCallback),
+    )
+
+    if(args.threads_byte == 1):
+
+        for b,c,s,g,cb in map_arguments:
+            guess,conf = cpa_process_byte(b,c,s,g,cb)
+            byte_guesses[b] = guess
+            byte_confidence[b] = conf
+
+    else:
     
-    with Pool(args.threads) as p:
-        
-        map_arguments = zip(
-            range(0, args.key_bytes),
-            repeat(cpa_byte),
-            repeat(args.save_path),
-            repeat(args.graphs),
-        )
+        with Pool(args.threads_byte) as p:
 
-        results = p.starmap(cpa_process_byte_and_word, map_arguments)
+            results = p.starmap(cpa_process_byte, map_arguments)
 
-        for i in range(0, args.key_bytes):
-            bg, bc              = results[i]
-            byte_guesses[i]     = bg
-            byte_confidence[i]  = bc
+            for i in range(0, bytes_to_guess):
+                bg, bc              = results[i]
+                byte_guesses[i]     = bg
+                byte_confidence[i]  = bc
 
     byte_guess = array.array('B',byte_guesses).tostring().hex()
 
     log.info("Byte Confidence: %s" % str(byte_confidence))
     
-    log.info("Byte Confidence: %f" % (sum(byte_confidence)/args.key_bytes))
+    log.info("Byte Confidence: %f" % (sum(byte_confidence)/bytes_to_guess))
     
     log.info("Byte Key Guess: %s" % byte_guess)
 
@@ -184,14 +214,14 @@ def main(
         expected_key = bytes.fromhex(hexstr)
         log.info("Expected Key  : %s" % hexstr)
 
-        byte_distances = [0] * args.key_bytes
+        byte_distances = [0] * bytes_to_guess
 
-        for i in range(0, args.key_bytes):
+        for i in range(0, bytes_to_guess):
             byte_distances[i] = cpa_byte.hd(byte_guesses[i], expected_key[i])
 
         byte_distance = sum(byte_distances)
 
-        byte_score = 100 * (1.0 - byte_distance / (8*args.key_bytes))
+        byte_score = 100 * (1.0 - byte_distance / (8*bytes_to_guess))
 
         log.info("Score: Byte: %03f" % byte_score)
 
