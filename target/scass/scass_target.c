@@ -120,6 +120,27 @@ static uint8_t set_experiment_data (
 }
 
 
+/*!
+@brief Reads 4 bytes from the UART (little endian) and turns this into
+ an address. It then Jumps to this address without returning.
+*/
+__attribute__((noreturn))
+void do_goto(scass_target_cfg * cfg) {
+
+    void (*func)();
+
+    uint32_t target = ((uint32_t)cfg -> scass_io_rd_char() <<  0) |
+                      ((uint32_t)cfg -> scass_io_rd_char() <<  8) |
+                      ((uint32_t)cfg -> scass_io_rd_char() << 16) |
+                      ((uint32_t)cfg -> scass_io_rd_char() << 24) ;
+
+    func = (void(*)())target;
+
+    func();
+
+    __builtin_unreachable();
+}
+
 void scass_loop (
     scass_target_cfg * cfg
 ) {
@@ -177,6 +198,11 @@ void scass_loop (
             case SCASS_CMD_SET_DATA_OUT:
                 success = set_experiment_data(
                     cfg, cfg -> data_out_len, cfg -> data_out);
+                break;
+            
+            case SCASS_CMD_GOTO:
+                do_goto(cfg); // Does not return.
+                __builtin_unreachable();
                 break;
 
             default:

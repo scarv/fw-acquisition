@@ -15,6 +15,7 @@
 #define SCASS_CMD_GET_DATA_OUT          'd'
 #define SCASS_CMD_SET_DATA_IN           'W'
 #define SCASS_CMD_SET_DATA_OUT          'w'
+#define SCASS_CMD_GOTO                  'G'
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'

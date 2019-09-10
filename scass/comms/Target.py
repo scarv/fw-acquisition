@@ -12,6 +12,7 @@ SCASS_CMD_GET_DATA_IN           = "D".encode("ascii")
 SCASS_CMD_GET_DATA_OUT          = "d".encode("ascii")
 SCASS_CMD_SET_DATA_IN           = "W".encode("ascii")
 SCASS_CMD_SET_DATA_OUT          = "w".encode("ascii")
+SCASS_CMD_GOTO                  = "G".encode("ascii")
 SCASS_RSP_OKAY                  = "0".encode("ascii")
 SCASS_RSP_ERROR                 = "!".encode("ascii")
 
@@ -190,6 +191,24 @@ class Target(object):
 
         return self.__cmdSuccess()
 
+    def doGoto(self, address):
+        """
+        Issue a goto command to the target, causing it to jump immediately
+        to the supplied memory address.
+
+        The target does not issue a return code, hence this function always
+        returns True.
+
+        parameters:
+        address: A 4 byte array containing the memory address to jump too.
+            The address should observe *little endian* byte ordering.
+        """
+
+        self.__sendByte(SCASS_CMD_GOTO)
+
+        self.port.write(address)
+
+        return True
 
     def doHelloWorld(self):
         """
