@@ -22,6 +22,9 @@ def parse_args():
     parser.add_argument("--graph-ttest",type=str, default = None,
         help="If set, write the T statistic trace graph to this file.")
     
+    parser.add_argument("--graph-t-over-n",type=str, default = None,
+        help="If set, write max T value v.s. num traces graph to this file")
+    
     parser.add_argument("--graph-avg-trace",type=str, default = None,
         help="If set, write the average traces for each set to this file")
 
@@ -90,6 +93,31 @@ def main():
         )
         plt.plot(
             [-args.critical_value]*ttest.ttrace.size,
+            linewidth=0.25,color="red"
+        )
+
+        fig.set_size_inches(10,5,forward=True)
+        plt.savefig(args.graph_ttest)
+
+    if(args.graph_t_over_n):
+        raise NotImplementedError("t over n graphs not yet implemented")
+        log.info("Writing T-over-N graph: %s" % args.graph_t_over_n)
+        plt.clf()
+        fig = plt.gcf()
+        plt.tight_layout
+        plt.title("Max-T over N traces")
+        plt.xlabel("Traces")
+        plt.ylabel("Peak Leakage")
+
+        tti = scass.ttest.TTestIncremental(second_order = args.second_order)
+
+        tti.ingest(ts_fixed, ts_random)
+
+        plt.plot(tti.t_over_time, tti.n_over_time,
+            linewidth="0.25", color="blue")
+
+        plt.plot(
+            [args.critical_value]*ttest.ttrace.size,
             linewidth=0.25,color="red"
         )
 

@@ -18,6 +18,9 @@ class TTest(object):
             The "fixed" value trace set
         ts_random: - TraceSet
             The "random" value trace set
+        second_order - bool
+            Perform a "second order ttest where the average traces
+            are squared.
         """
 
         assert(ts_fixed.num_traces > 0)
