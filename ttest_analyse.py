@@ -97,7 +97,7 @@ def main():
         )
 
         fig.set_size_inches(10,5,forward=True)
-        plt.savefig(args.graph_ttest)
+        plt.savefig(args.graph_ttest,bbox_inches="tight", pad_inches=0)
 
     if(args.graph_t_over_n):
         raise NotImplementedError("t over n graphs not yet implemented")
@@ -122,7 +122,7 @@ def main():
         )
 
         fig.set_size_inches(10,5,forward=True)
-        plt.savefig(args.graph_ttest)
+        plt.savefig(args.graph_t_over_n,bbox_inches="tight", pad_inches=0)
 
     if(args.graph_avg_trace):
         log.info("Writing Average Traces Graph: %s" % args.graph_avg_trace)
@@ -136,7 +136,7 @@ def main():
         plt.plot(ts_random.averageTrace(),linewidth=0.1,label="Random")
         fig.set_size_inches(10,5,forward=True)
         legend=ax.legend(loc="upper right")
-        plt.savefig(args.graph_avg_trace)
+        plt.savefig(args.graph_avg_trace,bbox_inches="tight", pad_inches=0)
     
 
 if(__name__ == "__main__"):
