@@ -9,6 +9,7 @@ import sys
 import argparse
 import logging as log
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 import scass
@@ -33,6 +34,9 @@ def parse_args():
 
     parser.add_argument("--second-order",action="store_true",default=False,
         help="Do a second order TTest.")
+
+    parser.add_argument("--ttrace-dump",type=argparse.FileType("wb"),
+        help="Dump the resulting ttrace to this file for later use.")
     
     parser.add_argument("trs_fixed",type=argparse.FileType("rb"),
         help="File path to store fixed data trace set")
@@ -76,6 +80,10 @@ def main():
         ts_random,
         second_order = args.second_order
     )
+
+    if(args.ttrace_dump):
+        log.info("Writing T Trace to: %s" % args.ttrace_dump.name)
+        np.save(args.ttrace_dump, ttest.ttrace)
 
     if(args.graph_ttest):
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
