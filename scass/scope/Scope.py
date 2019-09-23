@@ -162,9 +162,9 @@ class Scope(object):
         - The trigger window is a region where the trigger is "high"
         """
 
-        threshold      = np.mean(trigger_signal)
+        threshold      = (np.max(trigger_signal) + np.min(trigger_signal))/2
 
-        #print("Trigger Threshold: %s" % str(threshold))
+        print("Trigger Threshold: %s" % str(threshold))
 
         tr = 0
 
