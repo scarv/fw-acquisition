@@ -13,6 +13,8 @@ SCASS_CMD_GET_DATA_OUT          = "d".encode("ascii")
 SCASS_CMD_SET_DATA_IN           = "W".encode("ascii")
 SCASS_CMD_SET_DATA_OUT          = "w".encode("ascii")
 SCASS_CMD_GOTO                  = "G".encode("ascii")
+SCASS_CMD_GET_CYCLES            = "C".encode("ascii")
+SCASS_CMD_GET_INSTRRET          = "E".encode("ascii")
 SCASS_RSP_OKAY                  = "0".encode("ascii")
 SCASS_RSP_ERROR                 = "!".encode("ascii")
 
@@ -98,6 +100,33 @@ class Target(object):
         else:
             return False
 
+    def doGetExperimentCycles(self):
+        """Return the number of cycles it takes to execute 1 experiment.
+        You need to have run the experiment atleast once for this to work."""
+        self.__sendByte(SCASS_CMD_GET_CYCLES)
+        
+        bdata  = self.port.read(4)
+        assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
+        result = int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
+
+    def doGetExperimentInstrRet(self):
+        """Return the number instructions executeed by 1 experiment run.
+        You need to have run the experiment atleast once for this to work."""
+        self.__sendByte(SCASS_CMD_GET_INSTRRET)
+        
+        bdata  = self.port.read(4)
+        assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
+        result = int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
 
     def doSetInputData(self, data):
         """

@@ -16,6 +16,8 @@
 #define SCASS_CMD_SET_DATA_IN           'W'
 #define SCASS_CMD_SET_DATA_OUT          'w'
 #define SCASS_CMD_GOTO                  'G'
+#define SCASS_CMD_GET_CYCLES            'C'
+#define SCASS_CMD_GET_INSTRRET          'E'
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'
@@ -45,6 +47,12 @@ struct __scass_target_cfg {
     
     //! The length in bytes of the experiment output data array.
     uint32_t  data_out_len;
+
+    //! The number of cycles taken to execute 1 iteration of the experiment.
+    uint32_t  experiment_cycles;
+    
+    //! The number of instructions retired in 1 iteration of the experiment.
+    uint32_t  experiment_instrret;
 
     /*!
     @brief Read a single character from the target UART port.

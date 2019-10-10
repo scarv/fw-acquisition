@@ -85,6 +85,23 @@ static uint8_t get_experiment_data_len(
 
 
 /*!
+@brief write a 32-bit integer to the UART
+@note Writes least significant byte first.
+*/
+static uint8_t dump_uint32(
+    scass_target_cfg * cfg,
+    uint32_t data
+) {
+    cfg -> scass_io_wr_char((data >> 24)&0xFF);
+    cfg -> scass_io_wr_char((data >> 16)&0xFF);
+    cfg -> scass_io_wr_char((data >>  8)&0xFF);
+    cfg -> scass_io_wr_char((data >>  0)&0xFF);
+
+    return 0;
+}
+
+
+/*!
 @brief Dump the experiment data array to the UART.
 */
 static uint8_t get_experiment_data (
@@ -198,6 +215,14 @@ void scass_loop (
             case SCASS_CMD_SET_DATA_OUT:
                 success = set_experiment_data(
                     cfg, cfg -> data_out_len, cfg -> data_out);
+                break;
+
+            case SCASS_CMD_GET_CYCLES:
+                success = dump_uint32(cfg, cfg -> experiment_cycles);
+                break;
+
+            case SCASS_CMD_GET_INSTRRET:
+                success = dump_uint32(cfg, cfg -> experiment_instrret);
                 break;
             
             case SCASS_CMD_GOTO:

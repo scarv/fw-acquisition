@@ -128,6 +128,9 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     log.info("Trigger Window Size: %d" % window_size)
     log.info("Trace Datatype     : %s" % str(sig_power.dtype))
 
+    log.info("Experiment Cycles : %d" % target.doGetExperimentCycles())
+    log.info("Experiment InstRet: %d" % target.doGetExperimentInstrRet())
+
     ts_fixed    = scass.trace.TraceWriterSimple(
         args.trs_fixed, sig_power.dtype)
     ts_random   = scass.trace.TraceWriterSimple(
