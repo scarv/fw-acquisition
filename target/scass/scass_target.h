@@ -20,6 +20,7 @@
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'
+#define SCASS_RSP_DEBUG           '?'
 
 #define SCASS_FLAG_RANDOMISE (0x1 << 0)
 #define SCASS_FLAG_INPUT     (0x1 << 1)
@@ -146,6 +147,20 @@ struct __scass_target_cfg {
 */
 void scass_loop(
     scass_target_cfg * cfg //!< The config to run with.
+);
+
+
+/*!
+@brief Print a string to the host using the SCASS debug protocol
+@details Sends the SCASS_RSP_DEBUG symbol to the host, followed by
+    a null terminated string. The Host will read the string until
+    a newline is encountered. The function automatically appends a
+    newline ('\n') to the string when sending it.
+@param str - The NULL terminated string to print.
+*/
+void scass_debug_str(
+    scass_target_cfg * cfg, //!< The config to debug with
+    char             * str
 );
 
 #endif

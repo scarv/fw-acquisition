@@ -261,3 +261,18 @@ void scass_loop (
 
 }
 
+/*!
+*/
+void scass_debug_str(
+    scass_target_cfg * cfg, //!< The config to debug with
+    char             * str
+){
+    size_t len = strlen(str);
+
+    cfg -> scass_io_wr_char(SCASS_RSP_DEBUG);
+
+    dump_bytes(cfg, str, len);
+
+    cfg -> scass_io_wr_char(str[i]);
+}
+
