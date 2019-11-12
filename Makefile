@@ -8,3 +8,14 @@ docs-target:
 	@mkdir -p $(FW_ACQUISITION_BUILD)
 	doxygen target/doxygen.conf
 
+#
+# Build the Sphinx documentation for the host scass library.
+#
+docs-scass:
+	@mkdir -p $(FW_ACQUISITION_BUILD)
+	rm docs/source/scass.*.rst
+	sphinx-apidoc -o docs/source ./scass
+	make -C docs html
+	rm -fr                 build/sphinx-docs
+	mv -f  docs/build/html build/sphinx-docs
+
