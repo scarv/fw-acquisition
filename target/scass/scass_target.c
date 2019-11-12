@@ -141,7 +141,6 @@ static uint8_t set_experiment_data (
 @brief Reads 4 bytes from the UART (little endian) and turns this into
  an address. It then Jumps to this address without returning.
 */
-__attribute__((noreturn))
 void do_goto(scass_target_cfg * cfg) {
 
     void (*func)();
@@ -243,6 +242,8 @@ void scass_loop (
         }
 
     }
+
+    __builtin_unreachable();
 
 }
 
