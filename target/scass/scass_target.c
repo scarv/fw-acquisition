@@ -6,41 +6,12 @@
 
 
 /*!
-@brief Read 4 bytes from the UART and use them to seed the PRNG.
-@details Reads the most significant byte of the 32-bit seed value first.
-@returns 0 on success, non-zero on failure.
-*/
-static uint8_t seed_prng(
-    scass_target_cfg * cfg //!< The scass target config
-) {
-    
-    cfg -> prng_value = (cfg -> scass_io_rd_char() << 24) |
-                        (cfg -> scass_io_rd_char() << 16) |
-                        (cfg -> scass_io_rd_char() <<  8) |
-                        (cfg -> scass_io_rd_char() <<  0) ;
-
-    return 0;
-
-}
-
-
-uint32_t scass_prng_sample (
-    scass_target_cfg * cfg
-){
-    cfg -> prng_value ^= cfg -> prng_value << 13;
-    cfg -> prng_value ^= cfg -> prng_value >> 17;
-    cfg -> prng_value ^= cfg -> prng_value <<  5;
-
-    return cfg -> prng_value;
-}
-
-/*!
 @brief Send the name of the experiment to the host.
 @details Writes a single byte indicating the length of the experiment
 name string, followed by experiment name string.
-@returns 0 on sucess, non-zero on failure.
+@returns void
 */
-static uint8_t get_experiment_name(
+static void get_experiment_name(
     scass_target_cfg * cfg
 ) {
     
@@ -56,31 +27,6 @@ static uint8_t get_experiment_name(
 
     }
 
-    return 0;
-
-}
-
-
-/*!
-@brief write a 32-bit integer to the UART representing the length in
-  bytes of the experiment data array.
-@note Writes least significant byte first.
-*/
-static uint8_t get_experiment_data_len(
-    scass_target_cfg * cfg,
-    uint32_t data_len
-) {
-    uint8_t b0 = (data_len >> 24)&0xFF;
-    uint8_t b1 = (data_len >> 16)&0xFF;
-    uint8_t b2 = (data_len >>  8)&0xFF;
-    uint8_t b3 = (data_len >>  0)&0xFF;
-
-    cfg -> scass_io_wr_char(b0);
-    cfg -> scass_io_wr_char(b1);
-    cfg -> scass_io_wr_char(b2);
-    cfg -> scass_io_wr_char(b3);
-
-    return 0;
 }
 
 
@@ -88,7 +34,7 @@ static uint8_t get_experiment_data_len(
 @brief write a 32-bit integer to the UART
 @note Writes least significant byte first.
 */
-static uint8_t dump_uint32(
+static void dump_uint32(
     scass_target_cfg * cfg,
     uint32_t data
 ) {
@@ -96,41 +42,89 @@ static uint8_t dump_uint32(
     cfg -> scass_io_wr_char((data >> 16)&0xFF);
     cfg -> scass_io_wr_char((data >>  8)&0xFF);
     cfg -> scass_io_wr_char((data >>  0)&0xFF);
-
-    return 0;
 }
 
 
 /*!
-@brief Dump the experiment data array to the UART.
+@brief Dump the supplied bytes to the UART
 */
-static uint8_t get_experiment_data (
-    scass_target_cfg * cfg,
-    uint32_t           data_len,
-    uint8_t          * data_array
+static void dump_bytes (
+    scass_target_cfg * cfg  ,
+    char             * data ,
+    size_t             count
 ) {
-    for(int i = 0; i < data_len; i++) {
+    for(size_t i = 0; i < count; i ++) {
+        cfg -> scass_io_wr_char(data[i]);
+    }
+}
 
-        cfg -> scass_io_wr_char(data_array[i]);
 
+/*!
+@brief Dump a serialised version of a variable struct to the UART
+@returns Zero if successful. non-zero otherwise.
+*/
+static int dump_variable_info (
+    scass_target_cfg * cfg
+) {
+    uint8_t          var_idx = cfg -> scass_io_rd_char();
+
+    if(var_idx > cfg -> num_variables) {
+        return 1;
     }
 
+    scass_target_var var     = cfg -> variables[var_idx];
+
+    uint32_t         namelen = strlen(var.name);
+
+    dump_uint32(cfg, namelen);
+    dump_uint32(cfg, var.size);
+    dump_uint32(cfg, var.flags);
+    dump_bytes (cfg, var.name , namelen );
+
     return 0;
 }
 
 
 /*!
-@brief Set the experiment data content by reading from the UART
+@brief Dump a serialised version of a variable value.
+@returns Zero if successful. non-zero otherwise.
 */
-static uint8_t set_experiment_data (
-    scass_target_cfg * cfg,
-    uint32_t           data_len,
-    uint8_t          * data_array
+static int dump_variable_value (
+    scass_target_cfg * cfg
 ) {
-    for(int i = 0; i < data_len; i++) {
+    uint8_t          var_idx = cfg -> scass_io_rd_char();
 
-        data_array[i] = cfg -> scass_io_rd_char();
+    if(var_idx > cfg -> num_variables) {
+        return 1;
+    }
 
+    scass_target_var var     = cfg -> variables[var_idx];
+
+    dump_bytes(cfg, (char*)var.value, var.size);
+
+    return 0;
+}
+
+
+/*!
+@brief Set the value of a variable based on data read from the UART.
+@note Assumes you know the exact size in bytes of the variable, and that
+the correct number of bytes will be recieved via the UART.
+@returns Zero if successful. non-zero otherwise.
+*/
+static int set_variable_value (
+    scass_target_cfg * cfg
+) {
+    uint8_t          var_idx = cfg -> scass_io_rd_char();
+
+    if(var_idx > cfg -> num_variables) {
+        return 1;
+    }
+
+    scass_target_var var     = cfg -> variables[var_idx];
+
+    for(int i = 0; i < var.size; i ++) {
+        ((uint8_t*)var.value)[i] = cfg -> scass_io_rd_char();
     }
 
     return 0;
@@ -157,6 +151,7 @@ void do_goto(scass_target_cfg * cfg) {
     __builtin_unreachable();
 }
 
+
 void scass_loop (
     scass_target_cfg * cfg
 ) {
@@ -177,57 +172,51 @@ void scass_loop (
                 break;
 
             case SCASS_CMD_RUN_EXPERIMENT:
+                
+                if(cfg -> scass_experiment_pre_run != NULL) {
+                    cfg -> scass_experiment_pre_run(cfg);
+                }
+                
                 success = cfg -> scass_experiment_run(cfg);
-                break;
 
-            case SCASS_CMD_SEED_PRNG:
-                success = seed_prng(cfg);
+                if(cfg -> scass_experiment_post_run != NULL) {
+                    cfg -> scass_experiment_post_run(cfg);
+                }
+
                 break;
 
             case SCASS_CMD_EXPERIMENT_NAME:
-                success = get_experiment_name(cfg);
-                break;
-
-            case SCASS_CMD_GET_DATA_IN_LEN:
-                success = get_experiment_data_len(cfg,cfg->data_in_len);
-                break;
-            
-            case SCASS_CMD_GET_DATA_OUT_LEN:
-                success = get_experiment_data_len(cfg,cfg->data_out_len);
-                break;
-
-            case SCASS_CMD_GET_DATA_IN:
-                success = get_experiment_data(
-                    cfg, cfg -> data_in_len, cfg -> data_in);
-                break;
-            
-            case SCASS_CMD_GET_DATA_OUT:
-                success = get_experiment_data(
-                    cfg, cfg -> data_out_len, cfg -> data_out);
-                break;
-
-            case SCASS_CMD_SET_DATA_IN:
-                success = set_experiment_data(
-                    cfg, cfg -> data_in_len, cfg -> data_in);
-                break;
-            
-            case SCASS_CMD_SET_DATA_OUT:
-                success = set_experiment_data(
-                    cfg, cfg -> data_out_len, cfg -> data_out);
+                get_experiment_name(cfg);
+                success = 0;
                 break;
 
             case SCASS_CMD_GET_CYCLES:
-                success = dump_uint32(cfg, cfg -> experiment_cycles);
+                dump_uint32(cfg, cfg -> experiment_cycles);
+                success = 0;
                 break;
 
             case SCASS_CMD_GET_INSTRRET:
-                success = dump_uint32(cfg, cfg -> experiment_instrret);
+                dump_uint32(cfg, cfg -> experiment_instrret);
+                success = 0;
                 break;
             
             case SCASS_CMD_GOTO:
                 do_goto(cfg); // Does not return.
                 __builtin_unreachable();
                 break;
+
+            case SCASS_CMD_GET_VAR_NUM:
+                cfg -> scass_io_wr_char(cfg -> num_variables);
+                success = 0;
+
+            case SCASS_CMD_GET_VAR_INFO:
+                success = dump_variable_info(cfg);
+
+            case SCASS_CMD_GET_VAR_VALUE:
+                success = dump_variable_value(cfg);
+            
+            case SCASS_CMD_SET_VAR_VALUE:
+                success = set_variable_value(cfg);
 
             default:
                 break;

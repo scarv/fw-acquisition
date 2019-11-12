@@ -1,22 +1,24 @@
 
 import serial
 
-SCASS_CMD_HELLOWORLD            = "H".encode("ascii")
-SCASS_CMD_INIT_EXPERIMENT       = "I".encode("ascii")
-SCASS_CMD_RUN_EXPERIMENT        = "R".encode("ascii")
-SCASS_CMD_SEED_PRNG             = "P".encode("ascii")
-SCASS_CMD_EXPERIMENT_NAME       = "N".encode("ascii")
-SCASS_CMD_GET_DATA_IN_LEN       = "L".encode("ascii")
-SCASS_CMD_GET_DATA_OUT_LEN      = "l".encode("ascii")
-SCASS_CMD_GET_DATA_IN           = "D".encode("ascii")
-SCASS_CMD_GET_DATA_OUT          = "d".encode("ascii")
-SCASS_CMD_SET_DATA_IN           = "W".encode("ascii")
-SCASS_CMD_SET_DATA_OUT          = "w".encode("ascii")
-SCASS_CMD_GOTO                  = "G".encode("ascii")
-SCASS_CMD_GET_CYCLES            = "C".encode("ascii")
-SCASS_CMD_GET_INSTRRET          = "E".encode("ascii")
-SCASS_RSP_OKAY                  = "0".encode("ascii")
-SCASS_RSP_ERROR                 = "!".encode("ascii")
+SCASS_CMD_HELLOWORLD            = 'H'.encode("ascii")
+SCASS_CMD_INIT_EXPERIMENT       = 'I'.encode("ascii")
+SCASS_CMD_RUN_EXPERIMENT        = 'R'.encode("ascii")
+SCASS_CMD_EXPERIMENT_NAME       = 'N'.encode("ascii")
+SCASS_CMD_GOTO                  = 'G'.encode("ascii")
+SCASS_CMD_GET_CYCLES            = 'C'.encode("ascii")
+SCASS_CMD_GET_INSTRRET          = 'E'.encode("ascii")
+SCASS_RSP_OKAY                  = '0'.encode("ascii")
+SCASS_RSP_ERROR                 = '!'.encode("ascii")
+SCASS_CMD_GET_VAR_NUM           = 'V'.encode("ascii")
+SCASS_CMD_GET_VAR_INFO          = 'D'.encode("ascii")
+SCASS_CMD_GET_VAR_VALUE         = '1'.encode("ascii")
+SCASS_CMD_SET_VAR_VALUE         = '2'.encode("ascii")
+
+SCASS_FLAG_RANDOMISE            = (0x1 << 0)
+SCASS_FLAG_INPUT                = (0x1 << 1)
+SCASS_FLAG_OUTPUT               = (0x1 << 2)
+SCASS_FLAG_TTEST_VAR            = (0x1 << 3)
 
 class Target(object):
     """
@@ -43,6 +45,7 @@ class Target(object):
 
         self.exception_on_command_fail = True
         self.port.read()
+
 
     def doInitExperiment(self):
         """Do any one-time experiment initialisation needed"""
@@ -72,34 +75,6 @@ class Target(object):
             return False
 
 
-    def doGetInputDataLength(self):
-        """Return the length in bytes of the experiment input data array
-        or False if the command fails"""
-        self.__sendByte(SCASS_CMD_GET_DATA_IN_LEN)
-        
-        bdata  = self.port.read(4)
-        assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
-        result = int.from_bytes(bdata,byteorder="big")
-
-        if(self.__cmdSuccess()):
-            return result
-        else:
-            return False
-
-    def doGetOutputDataLength(self):
-        """Return the length in bytes of the experiment output data array
-        or False if the command fails"""
-        self.__sendByte(SCASS_CMD_GET_DATA_OUT_LEN)
-        
-        bdata  = self.port.read(4)
-        assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
-        result = int.from_bytes(bdata,byteorder="big")
-
-        if(self.__cmdSuccess()):
-            return result
-        else:
-            return False
-
     def doGetExperimentCycles(self):
         """Return the number of cycles it takes to execute 1 experiment.
         You need to have run the experiment atleast once for this to work."""
@@ -113,6 +88,7 @@ class Target(object):
             return result
         else:
             return False
+
 
     def doGetExperimentInstrRet(self):
         """Return the number instructions executeed by 1 experiment run.
@@ -128,97 +104,6 @@ class Target(object):
         else:
             return False
 
-    def doSetInputData(self, data):
-        """
-        Takes an N length byte array and writes it to the experiment
-        input data array on the target side. Does not check the data array
-        is the correct length, just writes the whole thing.
-        data array should be the same length as value returned by
-        doGetExperiementDataLength
-        """
-
-        tosend = SCASS_CMD_SET_DATA_IN + data
-        self.port.write(tosend)
-        self.port.flush()
-
-        return self.__cmdSuccess()
-
-
-    def doGetOutputData(self, length):
-        """
-        Get the contents of the experiment output data array.
-        Returns a byte array <length> bytes long. <length> should be
-        equal to the value returned by doGetExperiementDataLength
-        """
-
-        assert(isinstance(length,int))
-
-        self.__sendByte(SCASS_CMD_GET_DATA_OUT)
-        
-        tr = self.port.read(length)
-        
-        assert(len(tr) == length), "Expected %d bytes, got %d"%(
-            length,len(tr))
-        
-        if(self.__cmdSuccess()):
-            return tr
-        else:
-            return False
-
-
-    def doSetOutputData(self, data):
-        """
-        Takes an N length byte array and writes it to the experiment
-        output data array on the target side. Does not check the data array
-        is the correct length, just writes the whole thing.
-        data array should be the same length as value returned by
-        doGetExperiementDataLength
-        """
-
-        self.__sendByte(SCASS_CMD_SET_DATA_OUT)
-
-        self.port.write(data)
-
-        return self.__cmdSuccess()
-
-
-    def doGetInputData(self, length):
-        """
-        Get the contents of the experiment input data array.
-        Returns a byte array <length> bytes long. <length> should be
-        equal to the value returned by doGetExperiementDataLength
-        """
-
-        assert(isinstance(length,int))
-
-        self.__sendByte(SCASS_CMD_GET_DATA_IN)
-        
-        tr = self.port.read(length)
-        
-        assert(len(tr) == length), "Expected %d bytes, got %d"%(
-            length,len(tr))
-        
-        if(self.__cmdSuccess()):
-            return tr
-        else:
-            return False
-
-
-
-    def doSeedPRNG(self, seed):
-        """
-        Set the PRNG seed value, where the supplied seed is an
-        integer
-        """
-        assert(isinstance(seed,int))
-
-        self.__sendByte(SCASS_CMD_SEED_PRNG)
-
-        ibytes = seed.to_bytes(4,byteorder="little")
-
-        self.port.write(ibytes)
-
-        return self.__cmdSuccess()
 
     def doGoto(self, address):
         """
@@ -239,6 +124,93 @@ class Target(object):
 
         return True
 
+
+    def doGetVarNum(self):
+        """
+        Return the number of variables on the target which can be
+        managed by the SCASS framework. Number will be between 0 and 255.
+
+        :rtype: int or False if the command succeeds or fails respectivley.
+        """
+
+        self.__sendByte(SCASS_CMD_GET_VAR_NUM)
+        
+        bdata = self.port.read(1)
+        result= int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
+
+
+    def doGetVarInfo(self, varnum):
+        """
+        Return a tuple which describes a single variable under management
+        on the target device or False if the requested variable was
+        out of range.
+        
+        :param varnum: Index of the variable to get information for.
+
+        :rtype: tuple of the form:
+            (name, variable size, variable flags)
+        """
+
+        self.__sendByte(SCASS_CMD_GET_VAR_INFO)
+        self.__sendByte(bytes([varnum])[0])
+        
+        namelen = int.from_bytes(self.port.read(4),byteorder="big")
+        varsize = int.from_bytes(self.port.read(4),byteorder="big")
+        flags   = int.from_bytes(self.port.read(4),byteorder="big")
+        name    = str(self.port.read(namelen),encoding="ascii")
+
+        if(self.__cmdSuccess()):
+            return (name, varsize, flags)
+        else:
+            return False
+
+
+    def doGetVarValue(self, varnum, length):
+        """
+        Get the current value of the specified variable.
+
+        :param varnum: The index of the variable.
+        :param length: Number of bytes to read. Found using doGetVarInfo
+
+        :rtype: bytes or False
+        """
+        
+        self.__sendByte(SCASS_CMD_GET_VAR_VALUE)
+        self.__sendByte(bytes([varnum])[0])
+
+        rdata = self.port.read(length)
+
+        if(self.__cmdSuccess()):
+            return rdata
+        else:
+            return False
+
+
+    def doSetVarValue(self, varnum, data):
+        """
+        Get the current value of the specified variable.
+
+        :param varnum: The index of the variable.
+        :param data: The data to send. Assumed to be the correct length.
+
+        :rtype: bool
+        """
+        
+        self.__sendByte(SCASS_CMD_SET_VAR_VALUE)
+        self.__sendByte(bytes([varnum])[0])
+        self.port.write(data)
+
+        if(self.__cmdSuccess()):
+            return True 
+        else:
+            return False
+
+
     def doHelloWorld(self):
         """
         Run a hello world test of communications.
@@ -253,14 +225,17 @@ class Target(object):
         self.port.write(b)
         self.port.flush()
 
+
     def __recvByte(self):
         rsp = self.port.read()
         #print("< %s"%str(rsp))
         return rsp
 
+
     def __getRsp(self):
         """Get the response code from the target"""
         return self.__recvByte()
+
 
     def __cmdSuccess(self):
         """Return true if the next byte read is SCASS_RSP_OKAY, else
