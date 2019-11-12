@@ -132,6 +132,24 @@ static int set_variable_value (
 
 
 /*!
+@brief Recieves cfg -> randomness_len bytes from the UART and uses them to
+    seed the onboard randomness.
+@returns 0
+*/
+static int seed_randomness (
+    scass_target_cfg * cfg
+) {
+
+    for(int i = 0; i < cfg -> randomness_len; i ++) {
+        cfg -> randomness[i] = cfg -> scass_io_rd_char();
+    }
+
+    return 0;
+
+}
+
+
+/*!
 @brief Reads 4 bytes from the UART (little endian) and turns this into
  an address. It then Jumps to this address without returning.
 */
@@ -217,6 +235,13 @@ void scass_loop (
             
             case SCASS_CMD_SET_VAR_VALUE:
                 success = set_variable_value(cfg);
+
+            case SCASS_CMD_RAND_GET_LEN:
+                dump_uint32(cfg, cfg -> randomness_len);
+                success = 0;
+
+            case SCASS_CMD_RAND_SEED:
+                success = seed_randomness(cfg);
 
             default:
                 break;

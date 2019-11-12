@@ -14,6 +14,8 @@ SCASS_CMD_GET_VAR_NUM           = 'V'.encode("ascii")
 SCASS_CMD_GET_VAR_INFO          = 'D'.encode("ascii")
 SCASS_CMD_GET_VAR_VALUE         = '1'.encode("ascii")
 SCASS_CMD_SET_VAR_VALUE         = '2'.encode("ascii")
+SCASS_CMD_RAND_GET_LEN          = 'L'.encode("ascii")
+SCASS_CMD_RAND_SEED             = 'S'.encode("ascii")
 
 SCASS_FLAG_RANDOMISE            = (0x1 << 0)
 SCASS_FLAG_INPUT                = (0x1 << 1)
@@ -207,6 +209,41 @@ class Target(object):
 
         if(self.__cmdSuccess()):
             return True 
+        else:
+            return False
+
+
+    def doRandGetLen(self):
+        """
+        Get the length of the on-board randomness array.
+
+        :rtype: int or False
+        """
+
+        self.__sendByte(SCASS_CMD_RAND_GET_LEN)
+
+        bdata = self.port.read(4)
+        result= int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
+
+
+    def doRandSeed(self, data):
+        """
+        Seed the onboard randomness array with the supplied data.
+        Assumes that the supplied data bytes are of length "doRandGetLen"
+
+        :rtype: bool
+        """
+        self.__sendByte(SCASS_CMD_RAND_SEED)
+
+        self.port.write(data)
+
+        if(self.__cmdSuccess()):
+            return result
         else:
             return False
 

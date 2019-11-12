@@ -15,6 +15,8 @@
 #define SCASS_CMD_GET_VAR_INFO          'D'
 #define SCASS_CMD_GET_VAR_VALUE         '1'
 #define SCASS_CMD_SET_VAR_VALUE         '2'
+#define SCASS_CMD_RAND_GET_LEN          'L'
+#define SCASS_CMD_RAND_SEED             'S'
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'
@@ -68,6 +70,14 @@ struct __scass_target_cfg {
     
     //! The number of instructions retired in 1 iteration of the experiment.
     uint32_t  experiment_instrret;
+
+    /*! @brief Array of onboard random data, which is seeded by the host
+               but updated thereafter by the target.
+    */
+    uint8_t * randomness;
+
+    //! Length of the randomness data array.
+    uint32_t  randomness_len;
 
     /*!
     @brief Read a single character from the target UART port.
