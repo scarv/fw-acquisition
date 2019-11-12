@@ -42,14 +42,20 @@ class TraceSet(object):
         """
         Add a new trace and associated data to the to the set.
 
-        parameters:
-        trace: np.ndarray
+        :param trace:
             The trace to add
-        aux_data: np.ndarray
+        :type trace:  np.ndarray
+
+        :param aux_data:
             Associated trace data. Can be None / zero length
-        trim_pad: bool
+        :type aux_data:  np.ndarray
+
+        :param trim_pad:
             If true, zero pad or trim the length of the new trace
             to the same size as the zeroth trace currently in the set.
+        :type trim_pad: bool
+
+        :rtype: None
         """
         
         if(trim_pad and len(self.__traces) > 0):

@@ -228,9 +228,9 @@ class Target(object):
         The target does not issue a return code, hence this function always
         returns True.
 
-        parameters:
-        address: A 4 byte array containing the memory address to jump too.
-            The address should observe *little endian* byte ordering.
+        :param address:
+            A 4 byte array containing the memory address to jump too.  The
+            address should observe *little endian* byte ordering.
         """
 
         self.__sendByte(SCASS_CMD_GOTO)
