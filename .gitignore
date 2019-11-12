@@ -9,6 +9,7 @@
 component.xml
 
 xgui/
+build/
 	
 docs/*.aux
 docs/*.bbl
