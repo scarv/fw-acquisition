@@ -48,6 +48,8 @@ class Target(object):
         self.exception_on_command_fail = True
         self.port.read()
 
+        self.debug_messages = []
+
 
     def doInitExperiment(self):
         """Do any one-time experiment initialisation needed"""
@@ -264,9 +266,39 @@ class Target(object):
 
 
     def __recvByte(self):
-        rsp = self.port.read()
+        rsp = self.__recvBytes(1)
         #print("< %s"%str(rsp))
         return rsp
+
+    def __recvBytes(self, n):
+        assert(n>0)
+        b0 = self.__pollDebugMessages()
+        if(b0 == None):
+            rsp = self.port.read(n)
+        else:
+            if(n <= 1):
+                return b0
+            else:
+                rsp = b0 + self.port.read(n-1)
+        #print("< %s"%str(rsp))
+        return rsp
+
+    def __pollDebugMessages(self):
+        """
+        Checks if a debug message has been recieved from the target
+        device. If so, append it to self.debug_messages
+        """
+        if(self.port.out_waiting):
+            b0 = self.port.read(1)
+            if(str(b0,encoding="ascii") == '?'):
+                message = self.port.read_until()
+                self.debug_messages.append(messages)
+                print("TGT DEBUG: %s" % message)
+                return None
+            else:
+                return b0
+        else:
+            return None
 
 
     def __getRsp(self):
