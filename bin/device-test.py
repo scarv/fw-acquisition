@@ -15,6 +15,11 @@ import logging as log
 
 import serial
 
+scass_path = os.path.expandvars(
+    os.path.join(os.path.dirname(__file__),"../")
+)
+sys.path.append(scass_path)
+
 import scass
 
 def build_arg_parser():
@@ -24,8 +29,8 @@ def build_arg_parser():
     
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-b","--baud",type=int,
-        help="Baud rate to communicate with target at",default=9600)
+    parser.add_argument("-b","--baud",type=int,default=9600,
+        help="Baud rate to communicate with target at. Default=9600")
     
     parser.add_argument("port",type=str,
         help="TTY port to connect too when communicating with the target")
@@ -57,7 +62,7 @@ def main(argparser):
 
 
     log.info("Enumerating variables...")
-    log.info("%20s, %5d, %8x" %("Name", "Size","Flags"))
+    log.info("%20s | %5s | %8s" %("Name", "Size","Flags"))
     log.info("-"*40)
 
 
@@ -68,13 +73,13 @@ def main(argparser):
 
         target.doSetVarValue(i, new_value)
 
-        set_value = target.doGetVarValue(i)
+        set_value = target.doGetVarValue(i, vsize)
 
         assert(new_value == set_value),\
             "Setting value of %s. Expected %s, got %s" % (
                 vname,new_value,set_value)
 
-        log.info("%20s, %5d, %8x" % (vname, vsize, vflags))
+        log.info("%20s | %5d | 0x%08x" % (vname, vsize, vflags))
 
 
     log.info("Getting randomness array size..")
@@ -89,7 +94,7 @@ def main(argparser):
     ntimes = 10
     log.info("Running experiment %d times..." % (ntimes))
     for i in range(0,10):
-        log.info("> %d / %d" % (i,ntimes)
+        log.info("> %d / %d" % (i,ntimes))
         target.doRunExperiment()
 
 
@@ -106,5 +111,6 @@ def main(argparser):
 
 
 if(__name__ == "__main__"):
+    log.basicConfig(level=log.INFO)
     main(build_arg_parser())
 

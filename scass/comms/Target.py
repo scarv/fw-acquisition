@@ -84,7 +84,7 @@ class Target(object):
         You need to have run the experiment atleast once for this to work."""
         self.__sendByte(SCASS_CMD_GET_CYCLES)
         
-        bdata  = self.port.read(4)
+        bdata  = self.__recvBytes(4)
         assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
         result = int.from_bytes(bdata,byteorder="big")
 
@@ -99,7 +99,7 @@ class Target(object):
         You need to have run the experiment atleast once for this to work."""
         self.__sendByte(SCASS_CMD_GET_INSTRRET)
         
-        bdata  = self.port.read(4)
+        bdata  = self.__recvBytes(4)
         assert(len(bdata) == 4), "Expected 4 bytes, got %d"%len(bdata)
         result = int.from_bytes(bdata,byteorder="big")
 
@@ -139,7 +139,7 @@ class Target(object):
 
         self.__sendByte(SCASS_CMD_GET_VAR_NUM)
         
-        bdata = self.port.read(1)
+        bdata = self.__recvByte()
         result= int.from_bytes(bdata,byteorder="big")
 
         if(self.__cmdSuccess()):
@@ -161,12 +161,12 @@ class Target(object):
         """
 
         self.__sendByte(SCASS_CMD_GET_VAR_INFO)
-        self.__sendByte(bytes([varnum])[0])
+        self.__sendByte(bytes([varnum]))
         
-        namelen = int.from_bytes(self.port.read(4),byteorder="big")
-        varsize = int.from_bytes(self.port.read(4),byteorder="big")
-        flags   = int.from_bytes(self.port.read(4),byteorder="big")
-        name    = str(self.port.read(namelen),encoding="ascii")
+        namelen = int.from_bytes(self.__recvBytes(4),byteorder="big")
+        varsize = int.from_bytes(self.__recvBytes(4),byteorder="big")
+        flags   = int.from_bytes(self.__recvBytes(4),byteorder="big")
+        name    = str(self.__recvBytes(namelen),encoding="ascii")
 
         if(self.__cmdSuccess()):
             return (name, varsize, flags)
@@ -185,9 +185,9 @@ class Target(object):
         """
         
         self.__sendByte(SCASS_CMD_GET_VAR_VALUE)
-        self.__sendByte(bytes([varnum])[0])
+        self.__sendByte(bytes([varnum]))
 
-        rdata = self.port.read(length)
+        rdata = self.__recvBytes(length)
 
         if(self.__cmdSuccess()):
             return rdata
@@ -206,7 +206,7 @@ class Target(object):
         """
         
         self.__sendByte(SCASS_CMD_SET_VAR_VALUE)
-        self.__sendByte(bytes([varnum])[0])
+        self.__sendByte(bytes([varnum]))
         self.port.write(data)
 
         if(self.__cmdSuccess()):
@@ -224,7 +224,7 @@ class Target(object):
 
         self.__sendByte(SCASS_CMD_RAND_GET_LEN)
 
-        bdata = self.port.read(4)
+        bdata = self.__recvBytes(4)
         result= int.from_bytes(bdata,byteorder="big")
 
         if(self.__cmdSuccess()):
@@ -245,7 +245,7 @@ class Target(object):
         self.port.write(data)
 
         if(self.__cmdSuccess()):
-            return result
+            return True
         else:
             return False
 
@@ -267,7 +267,6 @@ class Target(object):
 
     def __recvByte(self):
         rsp = self.__recvBytes(1)
-        #print("< %s"%str(rsp))
         return rsp
 
     def __recvBytes(self, n):

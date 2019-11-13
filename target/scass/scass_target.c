@@ -226,22 +226,28 @@ void scass_loop (
             case SCASS_CMD_GET_VAR_NUM:
                 cfg -> scass_io_wr_char(cfg -> num_variables);
                 success = 0;
+                break;
 
             case SCASS_CMD_GET_VAR_INFO:
                 success = dump_variable_info(cfg);
+                break;
 
             case SCASS_CMD_GET_VAR_VALUE:
                 success = dump_variable_value(cfg);
+                break;
             
             case SCASS_CMD_SET_VAR_VALUE:
                 success = set_variable_value(cfg);
+                break;
 
             case SCASS_CMD_RAND_GET_LEN:
                 dump_uint32(cfg, cfg -> randomness_len);
                 success = 0;
+                break;
 
             case SCASS_CMD_RAND_SEED:
                 success = seed_randomness(cfg);
+                break;
 
             default:
                 break;
