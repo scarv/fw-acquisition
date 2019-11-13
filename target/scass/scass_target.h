@@ -27,6 +27,10 @@
 #define SCASS_FLAG_OUTPUT    (0x1 << 2)
 #define SCASS_FLAG_TTEST_VAR (0x1 << 3)
 
+#define SCASS_FLAGS_TTEST_IN (SCASS_FLAG_RANDOMISE |\
+                              SCASS_FLAG_INPUT     |\
+                              SCASS_FLAG_TTEST_VAR )
+
 /*!
 @brief Describes a single input/output variable for a SCASS managed experiment.
 */

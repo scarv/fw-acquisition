@@ -273,6 +273,6 @@ void scass_debug_str(
 
     dump_bytes(cfg, str, len);
 
-    cfg -> scass_io_wr_char(str[i]);
+    cfg -> scass_io_wr_char('\n');
 }
 
