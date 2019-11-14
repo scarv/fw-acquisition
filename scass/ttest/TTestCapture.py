@@ -83,6 +83,8 @@ class TTestCapture(object):
         self.num_samples    = num_samples
         self.num_traces     = num_traces
 
+        self.zeros_as_fixed_value = False
+
     
     def reportVariables(self):
         """
@@ -161,8 +163,14 @@ class TTestCapture(object):
             log.info("-"*80)
 
         for var in self.tgt_vars_ttest:
-                
-            fixed_val = secrets.token_bytes(var.size)
+
+            fixed_val = None
+
+            if(self.zeros_as_fixed_value):
+                fixed_val = (0).to_bytes(var.size,byteorder="little")
+            else:
+                fixed_val = secrets.token_bytes(var.size)
+
             var.setFixedValue(fixed_val)
 
             self.target.doSetVarFixedValue(var.vid, var.fixed_value)
