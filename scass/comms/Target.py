@@ -5,7 +5,8 @@ from .TargetVar import TargetVar
 
 SCASS_CMD_HELLOWORLD            = 'H'.encode("ascii")
 SCASS_CMD_INIT_EXPERIMENT       = 'I'.encode("ascii")
-SCASS_CMD_RUN_EXPERIMENT        = 'R'.encode("ascii")
+SCASS_CMD_RUN_RANDOM            = 'R'.encode("ascii")
+SCASS_CMD_RUN_FIXED             = 'F'.encode("ascii")
 SCASS_CMD_EXPERIMENT_NAME       = 'N'.encode("ascii")
 SCASS_CMD_GOTO                  = 'G'.encode("ascii")
 SCASS_CMD_GET_CYCLES            = 'C'.encode("ascii")
@@ -16,6 +17,8 @@ SCASS_CMD_GET_VAR_NUM           = 'V'.encode("ascii")
 SCASS_CMD_GET_VAR_INFO          = 'D'.encode("ascii")
 SCASS_CMD_GET_VAR_VALUE         = '1'.encode("ascii")
 SCASS_CMD_SET_VAR_VALUE         = '2'.encode("ascii")
+SCASS_CMD_GET_VAR_FIXED         = '3'.encode("ascii")
+SCASS_CMD_SET_VAR_FIXED         = '4'.encode("ascii")
 SCASS_CMD_RAND_GET_LEN          = 'L'.encode("ascii")
 SCASS_CMD_RAND_SEED             = 'S'.encode("ascii")
 
@@ -59,9 +62,14 @@ class Target(object):
         return self.__cmdSuccess()
 
 
-    def doRunExperiment(self):
+    def doRunRandomExperiment(self):
         """Run the experiment once"""
-        self.__sendByte(SCASS_CMD_RUN_EXPERIMENT)
+        self.__sendByte(SCASS_CMD_RUN_RANDOM)
+        return self.__cmdSuccess()
+    
+    def doRunFixedExperiment(self):
+        """Run the experiment once"""
+        self.__sendByte(SCASS_CMD_RUN_FIXED)
         return self.__cmdSuccess()
 
 
@@ -198,7 +206,7 @@ class Target(object):
 
     def doSetVarValue(self, varnum, data):
         """
-        Get the current value of the specified variable.
+        Set the current value of the specified variable.
 
         :param varnum: The index of the variable.
         :param data: The data to send. Assumed to be the correct length.
@@ -215,6 +223,46 @@ class Target(object):
         else:
             return False
 
+
+    def doGetVarFixedValue(self, varnum, length):
+        """
+        Get the current fixed value of the specified variable.
+
+        :param varnum: The index of the variable.
+        :param length: Number of bytes to read. Found using doGetVarInfo
+
+        :rtype: bytes or False
+        """
+        
+        self.__sendByte(SCASS_CMD_GET_VAR_FIXED)
+        self.__sendByte(bytes([varnum]))
+
+        rdata = self.__recvBytes(length)
+
+        if(self.__cmdSuccess()):
+            return rdata
+        else:
+            return False
+
+
+    def doSetVarFixedValue(self, varnum, data):
+        """
+        Set the current Fixed value of the specified variable.
+
+        :param varnum: The index of the variable.
+        :param data: The data to send. Assumed to be the correct length.
+
+        :rtype: bool
+        """
+        
+        self.__sendByte(SCASS_CMD_SET_VAR_FIXED)
+        self.__sendByte(bytes([varnum]))
+        self.port.write(data)
+
+        if(self.__cmdSuccess()):
+            return True 
+        else:
+            return False
 
     def doRandGetLen(self):
         """

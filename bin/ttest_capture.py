@@ -109,7 +109,7 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     log.info("Try single trace capture...")
 
     scope.runCapture()
-    target.doRunExperiment()
+    target.doRunFixedExperiment()
 
     while(scope.scopeReady() == False):
         pass

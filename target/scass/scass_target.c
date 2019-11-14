@@ -90,7 +90,8 @@ static int dump_variable_info (
 @returns Zero if successful. non-zero otherwise.
 */
 static int dump_variable_value (
-    scass_target_cfg * cfg
+    scass_target_cfg * cfg,
+    char               fixed
 ) {
     uint8_t          var_idx = cfg -> scass_io_rd_char();
 
@@ -100,7 +101,9 @@ static int dump_variable_value (
 
     scass_target_var var     = cfg -> variables[var_idx];
 
-    dump_bytes(cfg, (char*)var.value, var.size);
+    char * todump = fixed ? (char*)var.fixed_value : (char*)var.value;
+
+    dump_bytes(cfg, todump, var.size);
 
     return 0;
 }
@@ -113,7 +116,8 @@ the correct number of bytes will be recieved via the UART.
 @returns Zero if successful. non-zero otherwise.
 */
 static int set_variable_value (
-    scass_target_cfg * cfg
+    scass_target_cfg * cfg,
+    char               fixed
 ) {
     uint8_t          var_idx = cfg -> scass_io_rd_char();
 
@@ -122,9 +126,11 @@ static int set_variable_value (
     }
 
     scass_target_var var     = cfg -> variables[var_idx];
+    
+    char * toset = fixed ? (char*)var.fixed_value : (char*)var.value;
 
     for(int i = 0; i < var.size; i ++) {
-        ((uint8_t*)var.value)[i] = cfg -> scass_io_rd_char();
+        toset[i] = cfg -> scass_io_rd_char();
     }
 
     return 0;
@@ -169,6 +175,25 @@ void do_goto(scass_target_cfg * cfg) {
     __builtin_unreachable();
 }
 
+//! Run a single fixed / random experiment.
+static int run_experiment (
+    scass_target_cfg * cfg,
+    char                fixed
+){
+                
+    if(cfg -> scass_experiment_pre_run != NULL) {
+        cfg -> scass_experiment_pre_run(cfg,fixed);
+    }
+    
+    int failure = cfg -> scass_experiment_run(cfg,fixed);
+    
+    if(cfg -> scass_experiment_post_run != NULL) {
+        cfg -> scass_experiment_post_run(cfg,fixed);
+    }
+
+    return failure;
+
+}
 
 void scass_loop (
     scass_target_cfg * cfg
@@ -189,18 +214,12 @@ void scass_loop (
                 success = cfg -> scass_experiment_init(cfg);
                 break;
 
-            case SCASS_CMD_RUN_EXPERIMENT:
-                
-                if(cfg -> scass_experiment_pre_run != NULL) {
-                    cfg -> scass_experiment_pre_run(cfg);
-                }
-                
-                success = cfg -> scass_experiment_run(cfg);
-
-                if(cfg -> scass_experiment_post_run != NULL) {
-                    cfg -> scass_experiment_post_run(cfg);
-                }
-
+            case SCASS_CMD_RUN_FIXED:
+                success  = run_experiment(cfg,1);
+                break;
+            
+            case SCASS_CMD_RUN_RANDOM:
+                success  = run_experiment(cfg,0);
                 break;
 
             case SCASS_CMD_EXPERIMENT_NAME:
@@ -233,11 +252,19 @@ void scass_loop (
                 break;
 
             case SCASS_CMD_GET_VAR_VALUE:
-                success = dump_variable_value(cfg);
+                success = dump_variable_value(cfg,0);
                 break;
             
             case SCASS_CMD_SET_VAR_VALUE:
-                success = set_variable_value(cfg);
+                success = set_variable_value(cfg,0);
+                break;
+            
+            case SCASS_CMD_GET_VAR_FIXED:
+                success = dump_variable_value(cfg,1);
+                break;
+            
+            case SCASS_CMD_SET_VAR_FIXED:
+                success = set_variable_value(cfg,1);
                 break;
 
             case SCASS_CMD_RAND_GET_LEN:

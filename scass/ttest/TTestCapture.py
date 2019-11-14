@@ -123,6 +123,7 @@ class TTestCapture(object):
         # Make sure the scope knows how many data points to capture
         self.scope.num_samples = self.num_samples
 
+
     def _get_target_var_information(self):
         """
         Gather information from the target device about which target
@@ -156,7 +157,7 @@ class TTestCapture(object):
         """
 
         if(len(self.tgt_vars_ttest) > 0):
-            log.info("%20s | Fixed Value" % "Variable")
+            log.info("vid | %20s | Fixed Value" % "Variable")
             log.info("-"*80)
 
         for var in self.tgt_vars_ttest:
@@ -164,7 +165,10 @@ class TTestCapture(object):
             fixed_val = secrets.token_bytes(var.size)
             var.setFixedValue(fixed_val)
 
-            log.info("%20s | %s" % (
+            self.target.doSetVarFixedValue(var.vid, var.fixed_value)
+
+            log.info("%3s | %20s | %s" % (
+                var.vid ,
                 var.name,
                 hex(int.from_bytes(var.fixed_value,byteorder="little"))
             ))
@@ -193,11 +197,10 @@ class TTestCapture(object):
         Gathers a single trace where all TTest variables take on
         their fixed values.
         """
-        for var in self.tgt_vars_ttest:
-            var.takeFixedValue()
-            self.target.doSetVarValue(var.vid, var.fixed_value)
+        # No need to do anything since fixed values are already
+        # On the target device.
 
-    
+
     def _pre_gather_random_value_trace(self):
         """
         Gathers a single trace where all TTest variables take on
@@ -208,13 +211,16 @@ class TTestCapture(object):
             self.target.doSetVarValue(var.vid, var.current_value)
 
     
-    def _gather_trace(self):
+    def _gather_trace(self, fixed):
         """
         Gather a single trace from the target device.
         """
         self.scope.runCapture()
         
-        self.target.doRunExperiment()
+        if(fixed):
+            self.target.doRunFixedExperiment()
+        else:
+            self.target.doRunRandomExperiment()
 
         trace = self.scope.getRawChannelData(
             self.signal_channel,
@@ -260,7 +266,7 @@ class TTestCapture(object):
             else:
                 self._pre_gather_random_value_trace()
 
-            new_trace = self._gather_trace()
+            new_trace = self._gather_trace(gather_fixed)
             
             self._post_gather_trace(new_trace, gather_fixed)
 

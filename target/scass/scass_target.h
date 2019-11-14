@@ -6,7 +6,8 @@
 
 #define SCASS_CMD_HELLOWORLD            'H'
 #define SCASS_CMD_INIT_EXPERIMENT       'I'
-#define SCASS_CMD_RUN_EXPERIMENT        'R'
+#define SCASS_CMD_RUN_RANDOM            'R'
+#define SCASS_CMD_RUN_FIXED             'F'
 #define SCASS_CMD_EXPERIMENT_NAME       'N'
 #define SCASS_CMD_GOTO                  'G'
 #define SCASS_CMD_GET_CYCLES            'C'
@@ -15,6 +16,8 @@
 #define SCASS_CMD_GET_VAR_INFO          'D'
 #define SCASS_CMD_GET_VAR_VALUE         '1'
 #define SCASS_CMD_SET_VAR_VALUE         '2'
+#define SCASS_CMD_GET_VAR_FIXED         '3'
+#define SCASS_CMD_SET_VAR_FIXED         '4'
 #define SCASS_CMD_RAND_GET_LEN          'L'
 #define SCASS_CMD_RAND_SEED             'S'
 
@@ -45,6 +48,9 @@ struct __scass_target_var {
 
     //! Pointer to the data representing the variable.
     void   * value;
+    
+    //! The fixed value of this variable. Used for TTests.
+    void   * fixed_value;
     
     //! Single bit status flags.
     uint32_t flags;
@@ -114,30 +120,36 @@ struct __scass_target_cfg {
     /*!
     @brief Automatically called before every experiment run.
     @param cfg - The scass_target_cfg object associated with the experiment.
+    @param fixed - Use fixed variants of each variable
     @returns 0 on success, non-zero on failure.
     */
     uint8_t (*scass_experiment_pre_run)(
-        scass_target_cfg * cfg
+        scass_target_cfg * cfg,
+        char               fixed
     );
     
     /*!
     @brief Run the experiment once.
     @details May be set to NULL, in which case it is never called.
     @param cfg - The scass_target_cfg object associated with the experiment.
+    @param fixed - Use fixed variants of each variable
     @returns 0 on success, non-zero on failure.
     */
     uint8_t (*scass_experiment_run)(
-        scass_target_cfg * cfg
+        scass_target_cfg * cfg,
+        char               fixed
     );
     
     /*!
     @brief Automatically called after every experiment run.
     @details May be set to NULL, in which case it is never called.
     @param cfg - The scass_target_cfg object associated with the experiment.
+    @param fixed - Use fixed variants of each variable
     @returns 0 on success, non-zero on failure.
     */
     uint8_t (*scass_experiment_post_run)(
-        scass_target_cfg * cfg
+        scass_target_cfg * cfg,
+        char               fixed
     );
 
 };
