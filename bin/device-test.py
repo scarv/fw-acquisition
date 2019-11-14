@@ -82,6 +82,16 @@ def main(argparser):
         assert(new_value == set_value),\
             "Setting value of %s. Expected %s, got %s" % (
                 vname,new_value,set_value)
+        
+        new_value = secrets.token_bytes(vsize)
+
+        target.doSetVarFixedValue(i, new_value)
+
+        set_value = target.doGetVarFixedValue(i, vsize)
+
+        assert(new_value == set_value),\
+            "Setting Fixed value of %s. Expected %s, got %s" % (
+                vname,new_value,set_value)
 
         log.info("%20s | %5d | 0x%08x" % (vname, vsize, vflags))
 
@@ -99,7 +109,8 @@ def main(argparser):
     log.info("Running experiment %d times..." % (ntimes))
     for i in range(0,10):
         log.info("> %d / %d" % (i,ntimes))
-        target.doRunExperiment()
+        target.doRunFixedExperiment()
+        target.doRunRandomExperiment()
 
 
     log.info("Getting instruction count...")
