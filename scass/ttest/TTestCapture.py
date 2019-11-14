@@ -166,6 +166,7 @@ class TTestCapture(object):
             var.setFixedValue(fixed_val)
 
             self.target.doSetVarFixedValue(var.vid, var.fixed_value)
+            self.target.doSetVarValue     (var.vid, var.fixed_value)
 
             log.info("%3s | %20s | %s" % (
                 var.vid ,
@@ -207,8 +208,9 @@ class TTestCapture(object):
         their random values.
         """
         for var in self.tgt_vars_ttest:
-            var.randomiseValue()
-            self.target.doSetVarValue(var.vid, var.current_value)
+            if(var.is_randomisable):
+                var.randomiseValue()
+                self.target.doSetVarValue(var.vid, var.current_value)
 
     
     def _gather_trace(self, fixed):
