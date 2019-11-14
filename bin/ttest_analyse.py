@@ -12,6 +12,11 @@ import logging as log
 import numpy as np
 import matplotlib.pyplot as plt
 
+scass_path = os.path.expandvars(
+    os.path.join(os.path.dirname(__file__),"../")
+)
+sys.path.append(scass_path)
+
 import scass
 
 def parse_args():

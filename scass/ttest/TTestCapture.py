@@ -68,6 +68,7 @@ class TTestCapture(object):
         assert(isinstance(signal_channel, ScopeChannel))
         assert(isinstance(ts_fixed, TraceWriterBase))
         assert(isinstance(ts_rand , TraceWriterBase))
+        assert(isinstance(num_traces,int))
 
         self.__progress_bar     = True
         self.__progress_bar_func= tqdm
@@ -81,166 +82,211 @@ class TTestCapture(object):
 
         self.num_samples    = num_samples
         self.num_traces     = num_traces
-        self.min_traces     = num_traces/2
-
-        self._fixed_value   = None
-
-        # Store test input data with each trace?
-        self.store_input_with_trace = False
-
-        # Length of experiment data array on the target.
-        self.input_data_len = None
-
-        self.expect_fixed_data_len=-1
 
     
-    @property
-    def fixed_value(self):
+    def reportVariables(self):
         """
-        Return a byte array representing the fixed value used in the ttest.
-        Note that unless manually set, this may return None until the
-        runTTest function is called.
-        """
-        return self._fixed_value
-
-    @fixed_value.setter
-    def fixed_value(self,v):
-        """
-        Set the fixed value used in the ttest. If none is set, then
-        a random value is generated.
-        """
-        self._fixed_value = v
-
-    def update_target_fixed_data(self):
-        """
-        This function should be overriden by inheriting classes, and
-        is responsible for updating the target data to the "fixed" value.
-
-        Returns: The fixed data value as a byte string.
+        Print information about each managed variable on the target device.
         """
 
-        if(self._fixed_value == None):
-            
-            self._fixed_value = secrets.token_bytes(self.input_data_len)
+        log.info("%3s | %20s | %5s | %6s | %6s | %12s | %5s" % (
+            "vid",
+            "name",
+            "size",
+            "input",
+            "output",
+            "randomisable",
+            "ttest"
+        ))
+        log.info("-"*80)
+        
+        for var in self.tgt_vars:
 
-        return self._fixed_value
+            log.info("%3d | %20s | %5d | %6s | %6s | %12s | %5s" % (
+                var.vid,
+                var.name,
+                var.size,
+                var.is_input,
+                var.is_output,
+                var.is_randomisable,
+                var.is_ttest_variable
+            ))
+
+
+    def _initialise(self):
+        """
+        Called once before performTTest. Does any one-time configuration
+        needed by the target or host.
+        """
+        self._get_target_var_information()
+
+        # Make sure the scope knows how many data points to capture
+        self.scope.num_samples = self.num_samples
+
+    def _get_target_var_information(self):
+        """
+        Gather information from the target device about which target
+        variables need to be managed and how.
+        Called by _initialise
+        """
+
+        self.tgt_var_num  = self.target.doGetVarNum()
+        
+        assert(self.tgt_var_num != False)
+
+        self.tgt_vars       = []
+        self.tgt_vars_ttest = []
+
+        for i in range(0,self.tgt_var_num):
+
+            var = self.target.doGetVarInfo(i)
+
+            assert(var != False)
+
+            self.tgt_vars.append(var)
+
+            if(var.is_randomisable and var.is_ttest_variable):
+                self.tgt_vars_ttest.append(var)
+
+
+    def _assign_ttest_fixed_values(self):
+        """
+        Assigns fixed values to all managable variables which are
+        both randomisable and ttest variables.
+        """
+
+        if(len(self.tgt_vars_ttest) > 0):
+            log.info("%20s | Fixed Value" % "Variable")
+            log.info("-"*80)
+
+        for var in self.tgt_vars_ttest:
+                
+            fixed_val = secrets.token_bytes(var.size)
+            var.setFixedValue(fixed_val)
+
+            log.info("%20s | %s" % (
+                var.name,
+                hex(int.from_bytes(var.fixed_value,byteorder="little"))
+            ))
+
+
+
+    def _pre_run_ttest(self):
+        """
+        Called immediately before the main _run_ttest function is
+        called.
+        """
+        self._assign_ttest_fixed_values()
+
+
+    def _pre_gather_trace(self):
+        """
+        Called immediately before any new trace (fixed or random)
+        is gathered.
+        Called before _pre_gather_fixed_value_trace and
+                      _pre_gather_random_value_trace
+        """
+
+
+    def _pre_gather_fixed_value_trace(self):
+        """
+        Gathers a single trace where all TTest variables take on
+        their fixed values.
+        """
+        for var in self.tgt_vars_ttest:
+            var.takeFixedValue()
+            self.target.doSetVarValue(var.vid, var.fixed_value)
 
     
-    def update_target_random_data(self):
+    def _pre_gather_random_value_trace(self):
         """
-        This function should be overriden by inheriting classes, and
-        is responsible for updating the target data to "random" values.
-
-        Returns: The random data value as a byte string.
+        Gathers a single trace where all TTest variables take on
+        their random values.
         """
-        return secrets.token_bytes(self.input_data_len)
+        for var in self.tgt_vars_ttest:
+            var.randomiseValue()
+            self.target.doSetVarValue(var.vid, var.current_value)
 
-
-    def prepareTTest(self):
+    
+    def _gather_trace(self):
         """
-        Called once at the start of the data capture, used to gather
-        information on the target.
-        - Gets length of input data
-        - Runs the target.doInitExperiment() function
-        - Generates a *random* fixed value to use.
-        Returns true if preparation succeeded, False otherwise.
+        Gather a single trace from the target device.
         """
-
-        # Get the length of the target experiment data array.
-        self.input_data_len = self.target.doGetInputDataLength()
-        self._fixed_value  = self.update_target_fixed_data()
-
-        exp_fix_len = self.input_data_len
-        if(self.expect_fixed_data_len != -1):
-            exp_fix_len = self.expect_fixed_data_len
+        self.scope.runCapture()
         
-        log.info("Expected fixed data len: %d" % exp_fix_len)
+        self.target.doRunExperiment()
 
-        try:
-            assert(len(self._fixed_value) == exp_fix_len)
-        except AssertionError as e:
-            log.error(
-                "Fixed value should be %d bytes long, but got %d bytes." %(
-                exp_fix_len,len(self._fixed_value))
-            )
-            return False
-        
-        try:
-            self.target.doInitExperiment()
-        except Exception as e:
-            log.error("Failed to initialise experiment: %s" % str(e))
-            return False
+        trace = self.scope.getRawChannelData(
+            self.signal_channel,
+            numSamples = self.num_samples
+        )
 
-        return True
+        return trace
 
-    def preTraceAcquire(self):
-        """
-        Called prior to each trace acquisition and selection of
-        data for that trace.
-        Can be used to update masks and such.
-        """
-        pass
 
-    def getFixedValue(self):
+    def _post_gather_trace(self, new_trace, gather_fixed):
         """
-        Returns the "fixed" value for the TTest. Can be overriden
-        to update the fixed value to be sent with things like new
-        mask values
-        """
-        return self._fixed_value
+        Called after each new trace (fixed or random) is gathered.
+        Responsible for trace post-processing and adding traces to
+        the relevent sets.
 
-    def runTTest(self):
+        :param new_trace:
+            The newly gathered trace as an np.ndarray
+
+        :param gather_fixed:
+            A bool. True iff a fixed value trace, false if random value.
         """
-        Runs the ttest data capture.
+        if(gather_fixed):
+            self.ts_fixed.writeTrace(new_trace,None)
+        else:
+            self.ts_rand.writeTrace(new_trace,None)
+
+
+    def _run_ttest(self):
+        """
+        Top level function which gathers the requisite number of traces
+        for the TTest sets.
         """
 
         for i in self.__progress_bar_func(range(0,self.num_traces)):
 
-            self.preTraceAcquire()
-            
-            fixed_data = random.choice([True,False])
-            tdata      = None
+            self._pre_gather_trace()
 
-            if(fixed_data):
-                tdata       = self.getFixedValue()
+            new_trace       = None
+            gather_fixed    = random.choice([True,False])
+
+            if(gather_fixed):
+                self._pre_gather_fixed_value_trace()
             else:
-                tdata       = self.update_target_random_data()
+                self._pre_gather_random_value_trace()
 
-            #print("%d %s" % (len(tdata),tdata.hex()))
-
-            self.target.doSetInputData(tdata)
-
-            self.scope.runCapture()
-
-            try:
-                self.target.doRunExperiment()
-            except Exception as e:
-                print("Caught exception during TTest Capture: %s" % str(e))
-                print("Continuing...")
-
-            while(not self.scope.scopeReady()):
-                pass
-
-            trace = self.scope.getRawChannelData(
-                self.signal_channel,
-                self.num_samples
-            )
-
-            storedata = None
+            new_trace = self._gather_trace()
             
-            if(self.store_input_with_trace):
-                # Stored data is always passed as an np array.
-                storedata = np.frombuffer(tdata,dtype=np.uint8)
+            self._post_gather_trace(new_trace, gather_fixed)
 
-            if(fixed_data):
-                self.ts_fixed.writeTrace(trace,aux_data = storedata)
-            else:
-                self.ts_rand.writeTrace(trace,aux_data = storedata)
 
-        self.ts_rand.flushTraces()
-        self.ts_fixed.flushTraces()
+    def _post_run_ttest(self):
+        """
+        Called after the main ttest function finishes. Can be used
+        for trimming collected data or cleanup.
+        """
 
-    # ------------------
+
+    def initialiseTTest(self):
+        """
+        Publically visible initialisation funciton. Wraps _initialise
+        """
+        self._initialise()
+
+
+    def performTTest(self):
+        """
+        Runs the entire TTest procedure.
+        """
+        self._pre_run_ttest()
+        self._run_ttest()
+        self._post_run_ttest()
+
 
     @property
     def progress_bar(self):

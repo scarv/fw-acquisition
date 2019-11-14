@@ -67,7 +67,11 @@ def main(argparser):
 
 
     for i in range(0,evar_count):
-        vname, vsize, vflags = target.doGetVarInfo(i)
+        vinfo = target.doGetVarInfo(i)
+        
+        vname = vinfo.name
+        vsize = vinfo.size
+        vflags= vinfo.flags
 
         new_value = secrets.token_bytes(vsize)
 

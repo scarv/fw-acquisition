@@ -9,6 +9,11 @@ import sys
 import argparse
 import logging as log
 
+scass_path = os.path.expandvars(
+    os.path.join(os.path.dirname(__file__),"../")
+)
+sys.path.append(scass_path)
+
 import scass
 
 def parse_args():
@@ -83,12 +88,6 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
 
     log.info("Experiment Name    : '%s'" % experiment_name)
 
-    input_data_len  = target.doGetInputDataLength()
-    output_data_len = target.doGetOutputDataLength()
-
-    log.info("Input Data Length  : %d" % input_data_len)
-    log.info("Output Data Length : %d" % output_data_len)
-
     log.info("Scope Configuration: %s" % args.scope)
     scope           = scass.scope.fromConfig(args.scope)
 
@@ -147,27 +146,13 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
         num_samples = window_size
     )
 
-    if(args.fixed_value != ""):
-        hexstr = args.fixed_value
-        if(hexstr.startswith("0x")):
-            hexstr = hexstr[2:]
-        ttest.fixed_value = bytes.fromhex(hexstr)
+    ttest.initialiseTTest()
 
-    log.info("Keep Input Data: %s" % str(args.keep_data))
-    ttest.store_input_with_trace = args.keep_data
-
-    ttest.expect_fixed_data_len = args.fixed_value_len
-
-    prepared = ttest.prepareTTest()
+    ttest.reportVariables()
     
-    if(not prepared):
-        return 1
-
-    fixed_value_str = ''.join(format(x, '02x') for x in ttest.fixed_value)
-    log.info("Fixed Value    : 0x%s" % fixed_value_str)
     log.info("Running TTest Capture...")
 
-    ttest.runTTest()
+    ttest.performTTest()
     
     log.info("TTest Capture Finished")
     log.info("Fixed traces   : %d" % ts_fixed.traces_written)

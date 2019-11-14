@@ -1,6 +1,8 @@
 
 import serial
 
+from .TargetVar import TargetVar
+
 SCASS_CMD_HELLOWORLD            = 'H'.encode("ascii")
 SCASS_CMD_INIT_EXPERIMENT       = 'I'.encode("ascii")
 SCASS_CMD_RUN_EXPERIMENT        = 'R'.encode("ascii")
@@ -156,8 +158,7 @@ class Target(object):
         
         :param varnum: Index of the variable to get information for.
 
-        :rtype: tuple of the form:
-            (name, variable size, variable flags)
+        :rtype: TargetVar or False
         """
 
         self.__sendByte(SCASS_CMD_GET_VAR_INFO)
@@ -169,7 +170,7 @@ class Target(object):
         name    = str(self.__recvBytes(namelen),encoding="ascii")
 
         if(self.__cmdSuccess()):
-            return (name, varsize, flags)
+            return TargetVar(varnum, name, varsize, flags)
         else:
             return False
 
