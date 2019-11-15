@@ -99,6 +99,9 @@ def main(argparser):
     log.info("Getting randomness array size..")
     rand_size = target.doRandGetLen()
     log.info("> Random array size: %d" % rand_size)
+    log.info("Getting Refresh rate..")
+    rand_rate = target.doRandGetRefreshRate()
+    log.info("> Random referesh rate: %d" % rand_rate)
     log.info("Seeding random data array...")
     target.doRandSeed(secrets.token_bytes(rand_size))
 

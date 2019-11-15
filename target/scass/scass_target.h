@@ -19,6 +19,7 @@
 #define SCASS_CMD_GET_VAR_FIXED         '3'
 #define SCASS_CMD_SET_VAR_FIXED         '4'
 #define SCASS_CMD_RAND_GET_LEN          'L'
+#define SCASS_CMD_RAND_GET_INTERVAL     'l'
 #define SCASS_CMD_RAND_SEED             'S'
 
 #define SCASS_RSP_OKAY            '0'
@@ -89,6 +90,13 @@ struct __scass_target_cfg {
 
     //! Length of the randomness data array.
     uint32_t  randomness_len;
+    
+    /*!
+    @brief Refresh the randomness array every time this many traces have
+        been captured.
+    @note If set to zero then the randomness is never updated.
+    */
+    uint32_t  randomness_refresh_rate;
 
     /*!
     @brief Read a single character from the target UART port.

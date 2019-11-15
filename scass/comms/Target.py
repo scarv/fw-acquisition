@@ -20,6 +20,7 @@ SCASS_CMD_SET_VAR_VALUE         = '2'.encode("ascii")
 SCASS_CMD_GET_VAR_FIXED         = '3'.encode("ascii")
 SCASS_CMD_SET_VAR_FIXED         = '4'.encode("ascii")
 SCASS_CMD_RAND_GET_LEN          = 'L'.encode("ascii")
+SCASS_CMD_RAND_GET_INTERVAL     = 'l'.encode("ascii")
 SCASS_CMD_RAND_SEED             = 'S'.encode("ascii")
 
 SCASS_FLAG_RANDOMISE            = (0x1 << 0)
@@ -272,6 +273,25 @@ class Target(object):
         """
 
         self.__sendByte(SCASS_CMD_RAND_GET_LEN)
+
+        bdata = self.__recvBytes(4)
+        result= int.from_bytes(bdata,byteorder="big")
+
+        if(self.__cmdSuccess()):
+            return result
+        else:
+            return False
+
+
+    def doRandGetRefreshRate(self):
+        """
+        Get the number of traces afterwhich the SCASS framework should
+        referesh the on-board randomness.
+
+        :rtype: int or False
+        """
+
+        self.__sendByte(SCASS_CMD_RAND_GET_INTERVAL)
 
         bdata = self.__recvBytes(4)
         result= int.from_bytes(bdata,byteorder="big")

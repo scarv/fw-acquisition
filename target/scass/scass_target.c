@@ -272,6 +272,11 @@ void scass_loop (
                 success = 0;
                 break;
 
+            case SCASS_CMD_RAND_GET_INTERVAL:
+                dump_uint32(cfg, cfg -> randomness_refresh_rate);
+                success = 0;
+                break;
+
             case SCASS_CMD_RAND_SEED:
                 success = seed_randomness(cfg);
                 break;

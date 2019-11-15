@@ -151,6 +151,20 @@ class TTestCapture(object):
             if(var.is_randomisable and var.is_ttest_variable):
                 self.tgt_vars_ttest.append(var)
 
+        self.tgt_randomness_size = self.target.doRandGetLen()
+        self.tgt_randomness_rate = self.target.doRandGetRefreshRate()
+        self.tgt_randomness_count= 0
+
+
+    def _update_target_randomness(self):
+        """
+        Update the randomness array data on the target device.
+        """
+
+        tosend = secrets.token_bytes(self.tgt_randomness_size)
+
+        return self.target.doRandSeed(tosend)
+
 
     def _assign_ttest_fixed_values(self):
         """
@@ -252,10 +266,17 @@ class TTestCapture(object):
         :param gather_fixed:
             A bool. True iff a fixed value trace, false if random value.
         """
+
         if(gather_fixed):
             self.ts_fixed.writeTrace(new_trace,None)
         else:
             self.ts_rand.writeTrace(new_trace,None)
+
+        self.tgt_randomness_count += 1
+
+        if(self.tgt_randomness_count > self.tgt_randomness_rate):
+            if(self.tgt_randomness_rate > 0):
+                self._update_target_randomness()
 
 
     def _run_ttest(self):
