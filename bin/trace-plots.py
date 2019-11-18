@@ -39,6 +39,9 @@ def build_arg_parser():
     parser.add_argument("--range",action="store_true",
         help="Add range of each trace sample to the plot")
 
+    parser.add_argument("--transpose-over-time",action="store_true",
+        help="Plot the raw-trace set values over time, but transpose them")
+
     parser.add_argument("traceset",type=argparse.FileType("rb"),
         nargs="+",
         help="The set of traces to analyse")
@@ -77,6 +80,9 @@ def main(argparser):
         
         if(args.range):
             plt.plot(tset.maxTrace() - tset.minTrace(), linewidth=0.1)
+
+        if(args.transpose_over_time):
+            plt.plot(tset.tracesAs2dArray().transpose(),linewidth=0.1)
 
     plt.tight_layout()
         
