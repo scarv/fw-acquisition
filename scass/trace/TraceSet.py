@@ -131,6 +131,22 @@ class TraceSet(object):
             self.tracesAs2dArray(),
             axis = 1)
 
+    def minTrace(self):
+        """
+        Return the minimum values of all traces over time in the set.
+        """
+        return np.min(
+            self.tracesAs2dArray(),
+            axis = 1)
+
+    def maxTrace(self):
+        """
+        Return the maximum values of all traces over time in the set.
+        """
+        return np.max(
+            self.tracesAs2dArray(),
+            axis = 1)
+
     def standardDeviation(self):
         """
         Return the standard deviation over time across all traces.
