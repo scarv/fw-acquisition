@@ -1,5 +1,10 @@
 
-import serial
+import logging as log
+
+try:
+    import serial
+except ModuleNotFoundError as m:
+    log.warn("serial module not found. Target communication functionality will be unavailable")
 
 from .TargetVar import TargetVar
 

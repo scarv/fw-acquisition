@@ -1,5 +1,10 @@
 
-from picoscope.ps5000a import PS5000a
+import logging as log
+
+try:
+	from picoscope.ps5000a import PS5000a
+except ModuleNotFoundError as m:
+    log.warn("Picoscope.ps5000a module not found. Some scope functionality will be unavailable")
 
 from .Scope import Scope
 from .ScopeChannel import ScopeChannel
