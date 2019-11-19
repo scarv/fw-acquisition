@@ -286,10 +286,10 @@ void scass_loop (
         }
 
         rsp = success ? SCASS_RSP_ERROR : SCASS_RSP_OKAY;
-        
-        cfg -> scass_io_wr_char(rsp);
 
         if(rsp == SCASS_RSP_ERROR) {
+        
+            cfg -> scass_io_wr_char(rsp);
             cfg -> scass_io_wr_char(cmd);
         }
 

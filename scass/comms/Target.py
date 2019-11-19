@@ -382,6 +382,7 @@ class Target(object):
     def __cmdSuccess(self):
         """Return true if the next byte read is SCASS_RSP_OKAY, else
             return false"""
+        return True # TODO: Make this configurable!!
         rsp_code = self.__getRsp()
         if(rsp_code == SCASS_RSP_OKAY):
             return True

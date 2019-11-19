@@ -77,6 +77,13 @@ class Picoscope5000(Scope):
 
         return data
 
+    def dataReady(self):
+        """
+        Returns true if the scope has some captured data ready to be
+        collected.
+        """
+        return self.__scope.isReady()
+
     def configureTrigger(self, trigger):
         """
         Configure a trigger signal for the scope.

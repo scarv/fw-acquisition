@@ -1,6 +1,7 @@
 
 import random
 import secrets
+import time
 
 import logging as log
 
@@ -270,6 +271,9 @@ class TTestCapture(object):
             self.target.doRunFixedExperiment()
         else:
             self.target.doRunRandomExperiment()
+
+        while(not self.scope.dataReady()):
+            pass
 
         trace = self.scope.getRawChannelData(
             self.signal_channel,
