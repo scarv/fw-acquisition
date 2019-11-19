@@ -10,6 +10,7 @@ import secrets
 import argparse
 import logging as log
 
+import gzip
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -39,10 +40,7 @@ def build_arg_parser():
     parser.add_argument("--range",action="store_true",
         help="Add range of each trace sample to the plot")
 
-    parser.add_argument("--transpose-over-time",action="store_true",
-        help="Plot the raw-trace set values over time, but transpose them")
-
-    parser.add_argument("traceset",type=argparse.FileType("rb"),
+    parser.add_argument("traceset",type=str,
         nargs="+",
         help="The set of traces to analyse")
 
@@ -56,33 +54,28 @@ def main(argparser):
     Script main function
     """
     args = argparser.parse_args()
-
-    log.info("Loading traceset...")
         
     fig = plt.figure()
     fig.set_size_inches(9.5,5,forward=True)
 
     for tset in args.traceset:
 
-        reader = scass.trace.TraceReaderSimple(tset)
-        tset   = scass.trace.TraceSet()
-        tset.loadFromTraceReader(reader)
+        gzfh   = gzip.GzipFile(tset,"r")
+        traces = np.load(gzfh)
 
         if(args.avg_trace):
-            plt.plot(tset.averageTrace(), linewidth=0.1)
+            plt.plot(np.mean(traces,axis=0), linewidth=0.1)
 
         if(args.stddev):
-            plt.plot(tset.standardDeviation(), linewidth=0.1)
+            plt.plot(np.std(traces,axis=0), linewidth=0.1)
         
         if(args.minmax):
-            plt.plot(tset.minTrace(), linewidth=0.1)
-            plt.plot(tset.maxTrace(), linewidth=0.1)
+            plt.plot(np.min(traces,axis=0), linewidth=0.1)
+            plt.plot(np.max(traces,axis=0), linewidth=0.1)
         
         if(args.range):
-            plt.plot(tset.maxTrace() - tset.minTrace(), linewidth=0.1)
+            plt.plot(np.max(traces,axis=0) - np.min(traces,axis=0), linewidth=0.1)
 
-        if(args.transpose_over_time):
-            plt.plot(tset.tracesAs2dArray().transpose(),linewidth=0.1)
 
     plt.tight_layout()
         

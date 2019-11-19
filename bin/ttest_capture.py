@@ -46,11 +46,8 @@ def parse_args():
     parser.add_argument("power_channel",type=str,
         help="Scope Channel ID which samples the power signal")
     
-    parser.add_argument("trs_fixed",type=argparse.FileType("wb"),
-        help="File path to store fixed data trace set")
-
-    parser.add_argument("trs_random",type=argparse.FileType("wb"),
-        help="File path to store fixed data trace set")
+    parser.add_argument("trs_prefix",type=str,
+        help="File path prefix from which artifact file names are generated.")
     
 
     return parser
@@ -127,18 +124,12 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     log.info("Experiment Cycles : %d" % target.doGetExperimentCycles())
     log.info("Experiment InstRet: %d" % target.doGetExperimentInstrRet())
 
-    ts_fixed    = scass.trace.TraceWriterSimple(
-        args.trs_fixed, sig_power.dtype)
-    ts_random   = scass.trace.TraceWriterSimple(
-        args.trs_random, sig_power.dtype)
-
     ttest       = ttest_class(
         target,
         scope,
         scope.trigger_channel,
         power_channel,
-        ts_fixed,
-        ts_random,
+        args.trs_prefix,
         num_traces = args.num_traces,
         num_samples = window_size
     )
@@ -155,11 +146,6 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     ttest.performTTest()
     
     log.info("TTest Capture Finished")
-    log.info("Fixed traces   : %d" % ts_fixed.traces_written)
-    log.info("Random traces  : %d" % ts_random.traces_written)
-
-    ts_fixed.close()
-    ts_random.close()
 
     log.info("Finished Successfully")
 

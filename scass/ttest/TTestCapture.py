@@ -4,6 +4,7 @@ import secrets
 
 import logging as log
 
+import gzip
 import numpy as np
 
 from tqdm    import tqdm
@@ -30,9 +31,10 @@ class TTestCapture(object):
                  scope,
                  trigger_channel,
                  signal_channel,
-                 ts_fixed, ts_rand,
+                 trs_prefix,
                  num_traces = 1000,
-                 num_samples= 1000):
+                 num_samples= 1000,
+                 trs_dtype  = np.float32):
         """
         Create a new ttest capture class.
         
@@ -49,11 +51,9 @@ class TTestCapture(object):
         signal_channel - scass.scope.ScopeChannel
             The scope channel setup as the signal to capture.
 
-        ts_fixed - scass.trace.TraceWriterBase
-            Trace set containing "fixed" data value.
-
-        ts_rand - scass.trace.TraceWriterBase
-            Trace set containing "random" data values.
+        trs_prefix - str
+            File name prefix from which TTest artifact file names are
+            generated.
 
         num_traces : int
             The number of traces to capture in total.
@@ -66,8 +66,7 @@ class TTestCapture(object):
         assert(isinstance(scope, Scope))
         assert(isinstance(trigger_channel, ScopeChannel))
         assert(isinstance(signal_channel, ScopeChannel))
-        assert(isinstance(ts_fixed, TraceWriterBase))
-        assert(isinstance(ts_rand , TraceWriterBase))
+        assert(isinstance(trs_prefix, str))
         assert(isinstance(num_traces,int))
 
         self.__progress_bar     = True
@@ -77,11 +76,30 @@ class TTestCapture(object):
         self.scope          = scope
         self.trigger_channel= trigger_channel
         self.signal_channel = signal_channel
-        self.ts_fixed       = ts_fixed
-        self.ts_rand        = ts_rand
+        self.trs_prefix     = trs_prefix
+
+        self.trs_file       = self.trs_prefix + "-traces.npy.gz"
+        self.trs_fb_file    = self.trs_prefix + "-fixedbits.npy.gz"
+
+        self.traces         = np.zeros(
+            (num_traces,num_samples),
+            dtype=trs_dtype
+        )
+
+        self.fixed_bits     = np.zeros(
+            (num_traces), dtype=np.int8
+        )
+
+        # Dict of np.ndarray, keyed by target input variable names.
+        self.tgt_vars_values= {}
 
         self.num_samples    = num_samples
         self.num_traces     = num_traces
+        
+        # Increments with each call to _post_gather_trace
+        self.trace_count    = 0
+        self.fixed_count    = 0
+        self.rand_count     = 0
 
         self.zeros_as_fixed_value = False
 
@@ -150,6 +168,11 @@ class TTestCapture(object):
 
             if(var.is_randomisable and var.is_ttest_variable):
                 self.tgt_vars_ttest.append(var)
+
+            self.tgt_vars_values[var.name] = np.zeros (
+                (self.num_traces, var.size),
+                dtype=np.int8
+            )
 
         self.tgt_randomness_size = self.target.doRandGetLen()
         self.tgt_randomness_rate = self.target.doRandGetRefreshRate()
@@ -222,6 +245,8 @@ class TTestCapture(object):
         """
         # No need to do anything since fixed values are already
         # On the target device.
+        for var in self.tgt_vars_ttest:
+            var.takeFixedValue()
 
 
     def _pre_gather_random_value_trace(self):
@@ -268,15 +293,27 @@ class TTestCapture(object):
         """
 
         if(gather_fixed):
-            self.ts_fixed.writeTrace(new_trace,None)
+            self.fixed_bits[self.trace_count] = 1
+            self.fixed_count                 += 1
         else:
-            self.ts_rand.writeTrace(new_trace,None)
+            self.fixed_bits[self.trace_count] = 0
+            self.rand_count                  += 1
+        
+        self.traces [self.trace_count] = new_trace
+
+        for var in self.tgt_vars:
+            for i in range(0,var.size):
+                self.tgt_vars_values[var.name][self.trace_count][i] = \
+                    var.current_value[i]
+                
 
         self.tgt_randomness_count += 1
 
         if(self.tgt_randomness_count > self.tgt_randomness_rate):
             if(self.tgt_randomness_rate > 0):
                 self._update_target_randomness()
+
+        self.trace_count += 1
 
 
     def _run_ttest(self):
@@ -306,8 +343,37 @@ class TTestCapture(object):
         """
         Called after the main ttest function finishes. Can be used
         for trimming collected data or cleanup.
+        Dumps all TTest variable values and traces to file.
         """
 
+        log.info("%d Traces Captured: %d Fixed, %d Random." % (
+            self.trace_count, self.fixed_count, self.rand_count
+        ))
+
+        fixed_trace_idx = np.nonzero(self.fixed_bits >= 1)
+        rand_trace_idx  = np.nonzero(self.fixed_bits <  1)
+
+        log.info("Dumping %d traces to %s" % (
+            self.traces.shape[0], self.trs_file))
+        gzfh = gzip.GzipFile(self.trs_file,"w")
+        np.save(file=gzfh, arr=self.traces)
+
+        log.info("Dumping fixed/random indicators to %s" % self.trs_fb_file)
+        gzfh = gzip.GzipFile(self.trs_fb_file,"w")
+        np.save(file=gzfh, arr=self.fixed_bits)
+
+        for var in self.tgt_vars:
+
+            fp     = self.trs_prefix + "-var-" + var.name + ".npy.gz"
+            values = self.tgt_vars_values[var.name]
+            count  = self.tgt_vars_values[var.name].shape[0]
+
+            log.info("Dumping %d input var %s values to %s" % (
+                count, var.name, fp
+            ))
+            gzfh = gzip.GzipFile(fp,"w")
+            np.save(file=gzfh, arr=self.tgt_vars_values[var.name])
+        
 
     def initialiseTTest(self):
         """

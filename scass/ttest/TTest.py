@@ -14,17 +14,14 @@ class TTest(object):
         useful outputs.
 
         paramters:
-        ts_fixed - TraceSet
+        ts_fixed - np.ndarray
             The "fixed" value trace set
-        ts_random: - TraceSet
+        ts_random: - np.ndarrau
             The "random" value trace set
         second_order - bool
             Perform a "second order ttest where the average traces
             are squared.
         """
-
-        assert(ts_fixed.num_traces > 0)
-        assert(ts_random.num_traces > 0)
 
         self.ts_fixed   = ts_fixed
         self.ts_random  = ts_random
@@ -39,8 +36,8 @@ class TTest(object):
         Perform the ttest
         """
 
-        avg_fixed = self.ts_fixed.averageTrace()
-        avg_random= self.ts_random.averageTrace()
+        avg_fixed = np.mean(self.ts_fixed , axis=0)
+        avg_random= np.mean(self.ts_random, axis=0)
 
         if(self.second_order):
             avg_fixed = np.square(avg_fixed )
@@ -48,11 +45,11 @@ class TTest(object):
 
         avg_sum   = avg_fixed - avg_random
 
-        std_fixed = np.square(self.ts_fixed.standardDeviation())
-        div_fixed = np.divide(std_fixed, self.ts_fixed.num_traces)
+        std_fixed = np.square(np.std(self.ts_fixed, axis=0))
+        div_fixed = np.divide(std_fixed, self.ts_fixed.shape[0])
 
-        std_random= np.square(self.ts_random.standardDeviation())
-        div_random= np.divide(std_random, self.ts_random.num_traces)
+        std_random= np.square(np.std(self.ts_random, axis=0))
+        div_random= np.divide(std_random, self.ts_random.shape[0])
 
         denom = np.sqrt(div_fixed + div_random)
 
