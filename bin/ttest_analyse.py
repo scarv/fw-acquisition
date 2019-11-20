@@ -37,13 +37,16 @@ def parse_args():
 
     parser.add_argument("--ttrace-dump",type=argparse.FileType("wb"),
         help="Dump the resulting ttrace to this file for later use.")
-    
+
+    parser.add_argument("--abs",action="store_true",
+        help="Plot the absolute value of the TTrace.")
+
     parser.add_argument("trs_fixed",type=str,
         help="File path of .npy array indicating if traces are fixed or random.")
 
     parser.add_argument("trs_trace",type=str,
         help="File path of .npy file containing the traces")
-    
+
 
     return parser.parse_args()
 
@@ -54,7 +57,7 @@ def main():
     args        = parse_args()
 
     log.info("Loading traces...")
-    
+
     gzfh_fixed  = gzip.GzipFile(args.trs_fixed,"r")
     gzfh_traces = gzip.GzipFile(args.trs_trace,"r")
 
@@ -82,22 +85,27 @@ def main():
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
         plt.clf()
         fig = plt.gcf()
-        plt.tight_layout
+        fig.set_size_inches(9.5,5,forward=True)
         plt.title("TTest Results")
         plt.xlabel("Sample")
         plt.ylabel("Leakage")
-        plt.plot(ttest.ttrace, linewidth=0.1)
 
         plt.plot(
             [args.critical_value]*ttest.ttrace.size,
             linewidth=0.25,color="red"
         )
-        plt.plot(
-            [-args.critical_value]*ttest.ttrace.size,
-            linewidth=0.25,color="red"
-        )
 
-        fig.set_size_inches(10,5,forward=True)
+        if(args.abs):
+            plt.plot(np.abs(ttest.ttrace), linewidth=0.1)
+        else:
+            plt.plot(       ttest.ttrace , linewidth=0.1)
+
+            plt.plot(
+                [-args.critical_value]*ttest.ttrace.size,
+                linewidth=0.25,color="red"
+            )
+
+        plt.tight_layout()
         plt.savefig(args.graph_ttest,bbox_inches="tight", pad_inches=0)
 
 
