@@ -104,6 +104,19 @@ class TTestCapture(object):
 
         self.zeros_as_fixed_value = False
 
+    def getVariableByName(self, name):
+        """
+        Return a reference to the object repesenting an experiment variable
+        with the given name.
+        Must be called after _get_target_var_information is called.
+        """
+
+        for var in self.tgt_vars:
+            if(var.name == name):
+                return var
+
+        assert(False) ,"No variable with name '%s' exists." % name
+
     
     def reportVariables(self):
         """
@@ -196,20 +209,21 @@ class TTestCapture(object):
         both randomisable and ttest variables.
         """
 
-        if(len(self.tgt_vars_ttest) > 0):
+        if(len(self.tgt_vars) > 0):
             log.info("vid | %20s | Fixed Value" % "Variable")
             log.info("-"*80)
 
-        for var in self.tgt_vars_ttest:
+        for var in self.tgt_vars:
 
-            fixed_val = None
+            if(var.is_input and var.is_ttest_variable):
+                fixed_val = None
 
-            if(self.zeros_as_fixed_value):
-                fixed_val = (0).to_bytes(var.size,byteorder="little")
-            else:
-                fixed_val = secrets.token_bytes(var.size)
+                if(self.zeros_as_fixed_value):
+                    fixed_val = (0).to_bytes(var.size,byteorder="little")
+                else:
+                    fixed_val = secrets.token_bytes(var.size)
 
-            var.setFixedValue(fixed_val)
+                var.setFixedValue(fixed_val)
 
             self.target.doSetVarFixedValue(var.vid, var.fixed_value)
             self.target.doSetVarValue     (var.vid, var.fixed_value)
@@ -305,7 +319,7 @@ class TTestCapture(object):
         
         self.traces [self.trace_count] = new_trace
 
-        for var in self.tgt_vars:
+        for var in self.tgt_vars_ttest:
             for i in range(0,var.size):
                 self.tgt_vars_values[var.name][self.trace_count][i] = \
                     var.current_value[i]
@@ -325,6 +339,8 @@ class TTestCapture(object):
         Top level function which gathers the requisite number of traces
         for the TTest sets.
         """
+
+        self.target.doInitExperiment()
 
         for i in self.__progress_bar_func(range(0,self.num_traces)):
 

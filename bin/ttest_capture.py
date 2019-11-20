@@ -37,6 +37,10 @@ def parse_args():
     parser.add_argument("--zero-fixed",action="store_true",
         help="Tie all TTest fixed values to zero")
 
+    parser.add_argument("--set-vars", type=str, nargs="+",
+        help="Set an input variable/parameter of the experiment to this value"
+        )
+
     parser.add_argument("target",type=str,
         help="TTY port to connect too when communicating with the target")
     
@@ -146,7 +150,25 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     if(args.zero_fixed):
         ttest.zeros_as_fixed_value = True
 
+    log.info("Initialising TTest Capture...")
+
     ttest.initialiseTTest()
+
+    for varset in args.set_vars:
+        varname,value = varset.split("=")
+
+        log.info("Setting input variable %s = %s" % (varname, value))
+        value_int = int(value)
+
+        var = ttest.getVariableByName(varname)
+        value_bytes = value_int.to_bytes(var.size, byteorder="little")
+
+        var.setFixedValue(value_bytes)
+        var.takeFixedValue()
+
+        # Variables have their values sent to the target device
+        # by the TTestCapture class, _assign_ttest_fixed_values function.
+
 
     ttest.reportVariables()
 
