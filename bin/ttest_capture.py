@@ -154,20 +154,26 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
 
     ttest.initialiseTTest()
 
-    for varset in args.set_vars:
-        varname,value = varset.split("=")
+    if(args.set_vars == None):
+        pass
 
-        log.info("Setting input variable %s = %s" % (varname, value))
-        value_int = int(value)
+    else:
 
-        var = ttest.getVariableByName(varname)
-        value_bytes = value_int.to_bytes(var.size, byteorder="little")
+        for varset in args.set_vars:
+            varname,value = varset.split("=")
 
-        var.setFixedValue(value_bytes)
-        var.takeFixedValue()
+            log.info("Setting input variable %s = %s" % (varname, value))
+            value_int = int(value)
 
-        # Variables have their values sent to the target device
-        # by the TTestCapture class, _assign_ttest_fixed_values function.
+            var = ttest.getVariableByName(varname)
+            value_bytes = value_int.to_bytes(var.size, byteorder="little")
+
+            var.setFixedValue(value_bytes)
+            var.takeFixedValue()
+
+            # Variables have their values sent to the target device
+            # by the TTestCapture class, _assign_ttest_fixed_values
+            # function.
 
 
     ttest.reportVariables()
