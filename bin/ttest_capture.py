@@ -8,6 +8,7 @@ import os
 import sys
 import argparse
 import logging as log
+import time
 
 scass_path = os.path.expandvars(
     os.path.join(os.path.dirname(__file__),"../")
@@ -122,10 +123,11 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     log.info("Finding trigger window size...")
     window_size = 0
     retries     = 0
-    while(window_size == 0 and retries < 10):
+    while(window_size <= 10 and retries < 10):
         log.info("- Attempt %d" % retries)
         window_size = scope.findTriggerWindowSize(sig_trigger)
         retries += 1
+        time.sleep(1)
 
     if(window_size == 0):
         log.error("Failed to find window size after 10 attempts.")
