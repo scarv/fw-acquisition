@@ -129,7 +129,7 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
         retries += 1
         time.sleep(1)
 
-    if(window_size == 0):
+    if(window_size <= 10):
         log.error("Failed to find window size after 10 attempts.")
         return 1
 
@@ -138,6 +138,9 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
 
     log.info("Experiment Cycles : %d" % target.doGetExperimentCycles())
     log.info("Experiment InstRet: %d" % target.doGetExperimentInstrRet())
+    
+    log.info("Random Bytes      : %d" % target.doRandGetLen())
+    log.info("Randomness Rate   : %d" % target.doRandGetRefreshRate())
 
     ttest       = ttest_class(
         target,
