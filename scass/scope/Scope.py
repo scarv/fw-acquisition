@@ -78,6 +78,12 @@ class Scope(object):
         """Return the ScopeChannel object corresponding to the supplied cid"""
         return self._channels[cid]
 
+    def dataReady(self):
+        """
+        Returns true if the scope has some captured data ready to be
+        collected.
+        """
+        return False
 
     def configureChannel(self, channel):
         """

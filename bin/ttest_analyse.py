@@ -9,6 +9,7 @@ import sys
 import argparse
 import logging as log
 
+import gzip
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -27,12 +28,6 @@ def parse_args():
 
     parser.add_argument("--graph-ttest",type=str, default = None,
         help="If set, write the T statistic trace graph to this file.")
-    
-    parser.add_argument("--graph-t-over-n",type=str, default = None,
-        help="If set, write max T value v.s. num traces graph to this file")
-    
-    parser.add_argument("--graph-avg-trace",type=str, default = None,
-        help="If set, write the average traces for each set to this file")
 
     parser.add_argument("--critical-value",type=float,default=4.5,
         help="Critical value for TTest threshold")
@@ -42,13 +37,16 @@ def parse_args():
 
     parser.add_argument("--ttrace-dump",type=argparse.FileType("wb"),
         help="Dump the resulting ttrace to this file for later use.")
-    
-    parser.add_argument("trs_fixed",type=argparse.FileType("rb"),
-        help="File path to store fixed data trace set")
 
-    parser.add_argument("trs_random",type=argparse.FileType("rb"),
-        help="File path to store fixed data trace set")
-    
+    parser.add_argument("--abs",action="store_true",
+        help="Plot the absolute value of the TTrace.")
+
+    parser.add_argument("trs_fixed",type=str,
+        help="File path of .npy array indicating if traces are fixed or random.")
+
+    parser.add_argument("trs_trace",type=str,
+        help="File path of .npy file containing the traces")
+
 
     return parser.parse_args()
 
@@ -57,27 +55,20 @@ def main():
     Main function for the tool script
     """
     args        = parse_args()
-    
-    log.info("Loading fixed traces...")
-    ts_fixed_rd = scass.trace.TraceReaderSimple(args.trs_fixed )
 
-    log.info("Loading random traces...")
-    ts_random_rd= scass.trace.TraceReaderSimple(args.trs_random)
-    
-    ts_fixed    = scass.trace.TraceSet()
-    ts_fixed.loadFromTraceReader(ts_fixed_rd)
-    log.info("Fixed data type  : %s" % str(ts_fixed_rd.dtype))
+    log.info("Loading traces...")
 
-    ts_random   = scass.trace.TraceSet()
-    ts_random.loadFromTraceReader(ts_random_rd)
-    log.info("Random data type : %s" % str(ts_random_rd.dtype))
+    gzfh_fixed  = gzip.GzipFile(args.trs_fixed,"r")
+    gzfh_traces = gzip.GzipFile(args.trs_trace,"r")
 
-    log.info("Fixed Len     : %d" % ts_fixed.trace_length)
-    log.info("Random Len    : %d" % ts_random.trace_length)
-    log.info("Fixed traces  : %d" % ts_fixed.num_traces)
-    log.info("Random traces : %d" % ts_random.num_traces)
-    log.info("Fixed traces  : %d" % ts_fixed_rd.traces_read)
-    log.info("Random traces : %d" % ts_random_rd.traces_read)
+    fbits       = np.load(gzfh_fixed)
+    traces      = np.load(gzfh_traces)
+
+    fixed_idx   = np.nonzero(fbits >= 1)
+    rand_idx    = np.nonzero(fbits <  1)
+
+    ts_fixed    = traces[fixed_idx]
+    ts_random   = traces[ rand_idx]
 
     log.info("Running TTest...")
     ttest       = scass.ttest.TTest (
@@ -94,63 +85,29 @@ def main():
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
         plt.clf()
         fig = plt.gcf()
-        plt.tight_layout
+        fig.set_size_inches(9.5,5,forward=True)
         plt.title("TTest Results")
         plt.xlabel("Sample")
         plt.ylabel("Leakage")
-        plt.plot(ttest.ttrace, linewidth=0.1)
 
         plt.plot(
             [args.critical_value]*ttest.ttrace.size,
             linewidth=0.25,color="red"
         )
-        plt.plot(
-            [-args.critical_value]*ttest.ttrace.size,
-            linewidth=0.25,color="red"
-        )
 
-        fig.set_size_inches(10,5,forward=True)
+        if(args.abs):
+            plt.plot(np.abs(ttest.ttrace), linewidth=0.1)
+        else:
+            plt.plot(       ttest.ttrace , linewidth=0.1)
+
+            plt.plot(
+                [-args.critical_value]*ttest.ttrace.size,
+                linewidth=0.25,color="red"
+            )
+
+        plt.tight_layout()
         plt.savefig(args.graph_ttest,bbox_inches="tight", pad_inches=0)
 
-    if(args.graph_t_over_n):
-        raise NotImplementedError("t over n graphs not yet implemented")
-        log.info("Writing T-over-N graph: %s" % args.graph_t_over_n)
-        plt.clf()
-        fig = plt.gcf()
-        plt.tight_layout
-        plt.title("Max-T over N traces")
-        plt.xlabel("Traces")
-        plt.ylabel("Peak Leakage")
-
-        tti = scass.ttest.TTestIncremental(second_order = args.second_order)
-
-        tti.ingest(ts_fixed, ts_random)
-
-        plt.plot(tti.t_over_time, tti.n_over_time,
-            linewidth="0.25", color="blue")
-
-        plt.plot(
-            [args.critical_value]*ttest.ttrace.size,
-            linewidth=0.25,color="red"
-        )
-
-        fig.set_size_inches(10,5,forward=True)
-        plt.savefig(args.graph_t_over_n,bbox_inches="tight", pad_inches=0)
-
-    if(args.graph_avg_trace):
-        log.info("Writing Average Traces Graph: %s" % args.graph_avg_trace)
-        plt.clf()
-        fig,ax=plt.subplots()
-        plt.tight_layout
-        plt.title("Average Traces")
-        plt.xlabel("Sample")
-        plt.ylabel("Power Variation")
-        plt.plot(ts_fixed.averageTrace() ,linewidth=0.1,label="Fixed")
-        plt.plot(ts_random.averageTrace(),linewidth=0.1,label="Random")
-        fig.set_size_inches(10,5,forward=True)
-        legend=ax.legend(loc="upper right")
-        plt.savefig(args.graph_avg_trace,bbox_inches="tight", pad_inches=0)
-    
 
 if(__name__ == "__main__"):
     log.basicConfig(level=log.INFO)
