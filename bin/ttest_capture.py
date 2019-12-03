@@ -110,26 +110,31 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
 
     log.info("Try single trace capture...")
 
-    scope.runCapture()
-    target.doRunFixedExperiment()
-
-    while(scope.scopeReady() == False):
-        pass
-
     power_channel = scope.getChannel(args.power_channel)
 
-    sig_trigger = scope.getRawChannelData(
-        scope.trigger_channel, scope.max_samples)
-    sig_power   = scope.getRawChannelData(
-        power_channel,scope.max_samples)
+    sig_trigger = None
+    sig_power   = None
 
     log.info("Finding trigger window size...")
     window_size = 0
     retries     = 0
     while(window_size <= 10 and retries < 10):
         log.info("- Attempt %d" % retries)
+    
+        scope.runCapture()
+        target.doRunFixedExperiment()
+
+        while(scope.scopeReady() == False):
+            pass
+
+        sig_trigger = scope.getRawChannelData(
+            scope.trigger_channel, scope.max_samples)
+        sig_power   = scope.getRawChannelData(
+            power_channel,scope.max_samples)
+
         window_size = scope.findTriggerWindowSize(sig_trigger)
         retries += 1
+    
         time.sleep(1)
 
     if(window_size <= 10):
