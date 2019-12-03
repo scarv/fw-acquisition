@@ -189,7 +189,7 @@ class TTestCapture(object):
 
             self.tgt_vars_values[var.name] = np.zeros (
                 (self.num_traces, var.size),
-                dtype=np.int8
+                dtype=np.uint8
             )
 
         self.tgt_randomness_size = self.target.doRandGetLen()
