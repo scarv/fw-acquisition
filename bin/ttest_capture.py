@@ -51,8 +51,11 @@ def parse_args():
     parser.add_argument("power_channel",type=str,
         help="Scope Channel ID which samples the power signal")
     
-    parser.add_argument("trs_prefix",type=str,
-        help="File path prefix from which artifact file names are generated.")
+    parser.add_argument("traces_file",type=str,
+        help="File path to dump traces too.")
+    
+    parser.add_argument("fixed_file",type=str,
+        help="File path to dump fixed trace mask array too..")
     
 
     return parser
@@ -147,7 +150,8 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
         scope,
         scope.trigger_channel,
         power_channel,
-        args.trs_prefix,
+        args.traces_file,
+        args.fixed_file,
         num_traces = args.num_traces,
         num_samples = window_size
     )

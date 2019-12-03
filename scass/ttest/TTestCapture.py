@@ -2,6 +2,7 @@
 import random
 import secrets
 import time
+import os
 
 import logging as log
 
@@ -32,7 +33,8 @@ class TTestCapture(object):
                  scope,
                  trigger_channel,
                  signal_channel,
-                 trs_prefix,
+                 traces_file,
+                 fixed_file,
                  num_traces = 1000,
                  num_samples= 1000,
                  trs_dtype  = np.float32):
@@ -52,9 +54,11 @@ class TTestCapture(object):
         signal_channel - scass.scope.ScopeChannel
             The scope channel setup as the signal to capture.
 
-        trs_prefix - str
-            File name prefix from which TTest artifact file names are
-            generated.
+        traces_file - str
+            File path to store traces too.
+        
+        fixed_file - str
+            File name for fixed traces mask array.
 
         num_traces : int
             The number of traces to capture in total.
@@ -67,7 +71,8 @@ class TTestCapture(object):
         assert(isinstance(scope, Scope))
         assert(isinstance(trigger_channel, ScopeChannel))
         assert(isinstance(signal_channel, ScopeChannel))
-        assert(isinstance(trs_prefix, str))
+        assert(isinstance(traces_file, str))
+        assert(isinstance(fixed_file, str))
         assert(isinstance(num_traces,int))
 
         self.__progress_bar     = True
@@ -77,10 +82,9 @@ class TTestCapture(object):
         self.scope          = scope
         self.trigger_channel= trigger_channel
         self.signal_channel = signal_channel
-        self.trs_prefix     = trs_prefix
 
-        self.trs_file       = self.trs_prefix + "-traces.npy.gz"
-        self.trs_fb_file    = self.trs_prefix + "-fixedbits.npy.gz"
+        self.trs_file       = traces_file
+        self.trs_fb_file    = fixed_file
 
         self.traces         = np.zeros(
             (num_traces,num_samples),
@@ -382,9 +386,11 @@ class TTestCapture(object):
         gzfh = gzip.GzipFile(self.trs_fb_file,"w")
         np.save(file=gzfh, arr=self.fixed_bits)
 
+        vdir    = os.path.dirname(self.trs_file)
+
         for var in self.tgt_vars:
 
-            fp     = self.trs_prefix + "-var-" + var.name + ".npy.gz"
+            fp     = os.path.join(vdir,"var-" + var.name + ".npy.gz")
             values = self.tgt_vars_values[var.name]
             count  = self.tgt_vars_values[var.name].shape[0]
 
