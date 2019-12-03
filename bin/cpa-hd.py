@@ -56,17 +56,27 @@ def hw(x):
         x &= x-1
     return c
 
+def hd(x,y):
+    total = 0
+    for i,j in zip(x,y):
+        dist   = i ^ j
+        weight = hw(dist)
+        #print("%03d %03d - %08s %08s %08s" %(
+        #    dist,
+        #    weight,
+        #    bin(i),
+        #    bin(j),
+        #    bin(dist),
+        #))
+        total += weight
+    return total
+
+
 def main(args):
     """
     Script main function
     """
     
-    if(args.logfile != None):
-        log.basicConfig(filename=args.logfile, filemode="w",level=log.DEBUG)
-    else:
-        log.basicConfig(level=log.DEBUG)
-    log.getLogger().addHandler(log.StreamHandler())
-
     log.info("Loading traces...")
     
     gzfh_traces     = gzip.GzipFile(args.traces,"r")
@@ -87,29 +97,38 @@ def main(args):
         traces          = traces[select_idx]
         inputs_1        = inputs_1[select_idx]
         inputs_2        = inputs_2[select_idx]
-
-    trace_count, trace_len = traces.shape
-    input_count            = inputs_1.shape[0]
-
-    assert(inputs_1.shape == inputs_2.shape)
-
-    log.info("Input Count   : %d" % input_count)
-    log.info("Trace Count   : %d" % trace_count)
-    log.info("Trace Length  : %d" % trace_len  )
     
-    H = np.zeros(inputs_1.shape)
+    D_trace_count, T_trace_len  = traces.shape
 
-    for i in range(0, input_count):
-        H[i] = hw(inputs_1[i] ^ inputs_2[i])
+    # Key guesses are always one here, since we take values directly from
+    # the input arrays.
+    K_guesses                   = 1
+
+    log.info("Trace Count   D=%d" % D_trace_count)
+    log.info("Trace Length  T=%d" % T_trace_len  )
+    
+    T = traces
+    log.info("T = DxT matrix = %d x %d" % T.shape)
+
+    H = np.zeros((D_trace_count, K_guesses))
+    log.info("H = DxK matrix = %d x %d" % H.shape)
+
+    for i in range(0, D_trace_count):
+        H[i,0] = hd(inputs_1[i] , inputs_2[i])
 
     H_avgs = np.mean(H,axis=0)
-    T_avgs = np.mean(traces,axis=0)
-        
-    R_shape = (1, trace_len)
-    R       = np.empty(R_shape, dtype = np.float32, order='C')
+    T_avgs = np.mean(T,axis=0)
 
-   
-    for i in range(0,1):
+    #print(np.min(H))
+    #print(np.max(H))
+    #print(T)
+    #print(T_avgs.shape)
+    #print(T_avgs)
+    
+    R = np.zeros((K_guesses, T_trace_len))
+    log.info("R = KxT matrix = %d x %d" % R.shape)
+
+    for i in range(0,K_guesses):
 
         H_avg   = H_avgs[i]
         H_col   = H[:,i]
@@ -117,15 +136,12 @@ def main(args):
     
         H_col_sq_sum = np.dot(H_col_d,H_col_d)
 
-        for j in range(0, trace_len):
+        for j in range(0, T_trace_len):
 
             T_avg   = T_avgs[j]
-            T_col   = traces[:trace_count,j]
+            T_col   = traces[:D_trace_count,j]
             T_col_d = T_col - T_avg
             T_col_sq_sum = np.dot(T_col_d, T_col_d)
-        
-            #log.info("T_col    Shape: %s" % str(T_col   .shape))
-            #log.info("T_col_d  Shape: %s" % str(T_col_d .shape))
 
             top = np.dot(H_col_d, T_col_d)
 
@@ -134,7 +150,6 @@ def main(args):
                 bot = 1
 
             R[i,j] = np.abs(top/bot)
-
 
     plt.figure(1)
     fig = plt.gcf()
@@ -150,6 +165,7 @@ def main(args):
 
 if(__name__ == "__main__"):
     args = parse_args()
+    log.basicConfig(level=log.INFO)
     result = main(args)
     sys.exit(result)
 

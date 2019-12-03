@@ -48,21 +48,22 @@ def parse_args():
 def hw(x):
     """Return hamming weight of x"""
     c = 0
-    while x > 0:
-        c  = c + 1
-        x &= x-1
+    if(isinstance(x,np.ndarray)):
+        for y in x:
+            z = y
+            while z > 0:
+                c  = c + 1
+                z &= z-1
+    else:
+        while x > 0:
+            c  = c + 1
+            x &= x-1
     return c
 
 def main(args):
     """
     Script main function
     """
-    
-    if(args.logfile != None):
-        log.basicConfig(filename=args.logfile, filemode="w",level=log.DEBUG)
-    else:
-        log.basicConfig(level=log.DEBUG)
-    log.getLogger().addHandler(log.StreamHandler())
 
     log.info("Loading traces...")
     
@@ -81,26 +82,38 @@ def main(args):
         traces          = traces[select_idx]
         inputs          = inputs[select_idx]
 
-    trace_count, trace_len = traces.shape
-    input_count            = inputs.shape[0]
+    D_trace_count, T_trace_len  = traces.shape
 
-    log.info("Input Count   : %d" % input_count)
-    log.info("Trace Count   : %d" % trace_count)
-    log.info("Trace Length  : %d" % trace_len  )
+    # Key guesses are always one here, since we take values directly from
+    # the input arrays.
+    K_guesses                   = 1
+
+    log.info("Trace Count   D=%d" % D_trace_count)
+    log.info("Trace Length  T=%d" % T_trace_len  )
     
-    H = np.zeros(inputs.shape)
+    T = traces
+    log.info("T = DxT matrix = %d x %d" % T.shape)
 
-    for i in range(0, input_count):
-        H[i] = hw(inputs[i])
+    H = np.zeros((D_trace_count, K_guesses))
+    log.info("H = DxK matrix = %d x %d" % H.shape)
+
+    for i in range(0, D_trace_count):
+        H[i,0] = hw(inputs[i])
 
     H_avgs = np.mean(H,axis=0)
-    T_avgs = np.mean(traces,axis=0)
-        
-    R_shape = (1, trace_len)
-    R       = np.empty(R_shape, dtype = np.float32, order='C')
+    T_avgs = np.mean(T,axis=0)
 
-   
-    for i in range(0,1):
+    #print(np.min(H))
+    #print(np.max(H))
+    #print(T)
+    #print(T_avgs.shape)
+    #print(T_avgs)
+    #print(inputs)
+    
+    R = np.zeros((K_guesses, T_trace_len))
+    log.info("R = KxT matrix = %d x %d" % R.shape)
+
+    for i in range(0,K_guesses):
 
         H_avg   = H_avgs[i]
         H_col   = H[:,i]
@@ -108,15 +121,12 @@ def main(args):
     
         H_col_sq_sum = np.dot(H_col_d,H_col_d)
 
-        for j in range(0, trace_len):
+        for j in range(0, T_trace_len):
 
             T_avg   = T_avgs[j]
-            T_col   = traces[:trace_count,j]
+            T_col   = traces[:D_trace_count,j]
             T_col_d = T_col - T_avg
             T_col_sq_sum = np.dot(T_col_d, T_col_d)
-        
-            #log.info("T_col    Shape: %s" % str(T_col   .shape))
-            #log.info("T_col_d  Shape: %s" % str(T_col_d .shape))
 
             top = np.dot(H_col_d, T_col_d)
 
@@ -125,7 +135,6 @@ def main(args):
                 bot = 1
 
             R[i,j] = np.abs(top/bot)
-
 
     plt.figure(1)
     fig = plt.gcf()
@@ -138,9 +147,9 @@ def main(args):
         plt.savefig(args.graph,bbox_inches="tight", pad_inches=0)
 
 
-
 if(__name__ == "__main__"):
     args = parse_args()
+    log.basicConfig(level=log.INFO)
     result = main(args)
     sys.exit(result)
 
