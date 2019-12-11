@@ -55,8 +55,16 @@ def main():
     Main function for the tool script
     """
     args        = parse_args()
+    
+    if(not os.path.isfile(args.trs_trace)):
+        log.error("Input traceset %s does not exist." % args.trs_trace)
+        return 1
+    
+    if(not os.path.isfile(args.trs_fixed)):
+        log.error("Input fixed mask %s does not exist." % args.trs_fixed)
+        return 2
 
-    log.info("Loading traces...")
+    log.info("Decompressing traceset %s" % args.trs_trace)
 
     gzfh_fixed  = gzip.GzipFile(args.trs_fixed,"r")
     gzfh_traces = gzip.GzipFile(args.trs_trace,"r")
