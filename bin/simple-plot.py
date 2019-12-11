@@ -41,6 +41,9 @@ def build_arg_parser():
     
     parser.add_argument("--height",type=float, default=3.5,
         help="Height of the graph.")
+
+    parser.add_argument("--ymax",type=float,
+        help="Fix maximum value of Y axis")
     
     parser.add_argument("--critical-value",type=float,
         help="Critical value for TTest threshold")
@@ -85,12 +88,16 @@ def main(argparser):
         if(args.abs):
             trace = np.abs(trace)
 
+        if(args.ymax):
+            axs[row].set_ylim(top = args.ymax)
+
         axs[row].plot(trace, linewidth=0.1)
 
         if(args.layout ==" rows"):
             row += 1
 
-        axs[row].set_title(os.path.basename(intrace))
+        if(not args.layout == "overlap"):
+            axs[row].set_title(os.path.basename(intrace))
 
 
     if(args.critical_value):
