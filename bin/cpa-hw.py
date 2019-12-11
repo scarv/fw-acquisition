@@ -40,6 +40,9 @@ def parse_args():
         help="Log CPA information and progress to this file.)")
     
 
+    parser.add_argument("--dump",type=str,
+        help="Write the final HW corrolation trace to this file.")
+
     parser.add_argument("--graph",type=str,
         help="Write plot to this file path")
     
@@ -135,6 +138,10 @@ def main(args):
                 bot = 1
 
             R[i,j] = np.abs(top/bot)
+
+    if(args.dump):
+        log.info("Dumping CPA HW trace to %s" % args.dump)
+        np.save(args.dump, R.transpose())
 
     plt.figure(1)
     fig = plt.gcf()
