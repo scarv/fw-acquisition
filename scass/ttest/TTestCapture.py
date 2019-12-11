@@ -377,10 +377,17 @@ class TTestCapture(object):
         fixed_trace_idx = np.nonzero(self.fixed_bits >= 1)
         rand_trace_idx  = np.nonzero(self.fixed_bits <  1)
 
+        start = time.time()
+        
         log.info("Dumping %d traces to %s" % (
             self.traces.shape[0], self.trs_file))
+        
         gzfh = gzip.GzipFile(self.trs_file,"w")
         np.save(file=gzfh, arr=self.traces)
+        
+        log.info("Dumped %d traces in %s seconds" % (
+            self.traces.shape[0],
+            (time.time()-start)))
 
         log.info("Dumping fixed/random indicators to %s" % self.trs_fb_file)
         gzfh = gzip.GzipFile(self.trs_fb_file,"w")
