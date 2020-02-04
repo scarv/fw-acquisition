@@ -129,7 +129,7 @@ static int set_variable_value (
     
     char * toset = fixed ? (char*)var.fixed_value : (char*)var.value;
 
-    for(int i = 0; i < var.size; i ++) {
+    for(unsigned int i = 0; i < var.size; i ++) {
         toset[i] = cfg -> scass_io_rd_char();
     }
 
@@ -146,7 +146,7 @@ static int seed_randomness (
     scass_target_cfg * cfg
 ) {
 
-    for(int i = 0; i < cfg -> randomness_len; i ++) {
+    for(unsigned int i = 0; i < cfg -> randomness_len; i ++) {
         cfg -> randomness[i] = cfg -> scass_io_rd_char();
     }
 
