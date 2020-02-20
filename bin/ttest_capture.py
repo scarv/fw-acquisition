@@ -116,30 +116,14 @@ def main(argparser,ttest_class = scass.ttest.TTestCapture):
     sig_power   = None
 
     log.info("Finding trigger window size...")
-    window_size = 0
-    retries     = 0
-    while(window_size <= 10 and retries < 10):
-        log.info("- Attempt %d" % retries)
-    
-        scope.runCapture()
-        target.doRunFixedExperiment()
-
-        while(scope.scopeReady() == False):
-            pass
-
-        sig_trigger = scope.getRawChannelData(
-            scope.trigger_channel, scope.max_samples)
-        sig_power   = scope.getRawChannelData(
-            power_channel,scope.max_samples)
-
-        window_size = scope.findTriggerWindowSize(sig_trigger)
-        retries += 1
-    
-        time.sleep(1)
+    window_size = scass.scope.findTriggerWindowSize(scope,target,power_channel)
 
     if(window_size <= 10):
         log.error("Failed to find window size after 10 attempts.")
         return 1
+        
+    sig_power   = scope.getRawChannelData(
+        power_channel,scope.max_samples)
 
     log.info("Trigger Window Size: %d" % window_size)
     log.info("Trace Datatype     : %s" % str(sig_power.dtype))

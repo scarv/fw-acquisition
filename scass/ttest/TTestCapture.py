@@ -71,8 +71,8 @@ class TTestCapture(object):
         assert(isinstance(scope, Scope))
         assert(isinstance(trigger_channel, ScopeChannel))
         assert(isinstance(signal_channel, ScopeChannel))
-        assert(isinstance(traces_file, str))
-        assert(isinstance(fixed_file, str))
+        assert(isinstance(traces_file, str) or traces_file == None)
+        assert(isinstance(fixed_file, str)  or fixed_file == None)
         assert(isinstance(num_traces,int))
 
         self.__progress_bar     = True
@@ -379,33 +379,35 @@ class TTestCapture(object):
 
         start = time.time()
         
-        log.info("Dumping %d traces to %s" % (
-            self.traces.shape[0], self.trs_file))
-        
-        gzfh = gzip.GzipFile(self.trs_file,"w")
-        np.save(file=gzfh, arr=self.traces)
-        
-        log.info("Dumped %d traces in %s seconds" % (
-            self.traces.shape[0],
-            (time.time()-start)))
+        if(self.trs_file != None):
+            log.info("Dumping %d traces to %s" % (
+                self.traces.shape[0], self.trs_file))
+            
+            gzfh = gzip.GzipFile(self.trs_file,"w")
+            np.save(file=gzfh, arr=self.traces)
+            
+            log.info("Dumped %d traces in %s seconds" % (
+                self.traces.shape[0],
+                (time.time()-start)))
 
-        log.info("Dumping fixed/random indicators to %s" % self.trs_fb_file)
-        gzfh = gzip.GzipFile(self.trs_fb_file,"w")
-        np.save(file=gzfh, arr=self.fixed_bits)
+            vdir    = os.path.dirname(self.trs_file)
 
-        vdir    = os.path.dirname(self.trs_file)
+            for var in self.tgt_vars:
 
-        for var in self.tgt_vars:
+                fp     = os.path.join(vdir,"var-" + var.name + ".npy.gz")
+                values = self.tgt_vars_values[var.name]
+                count  = self.tgt_vars_values[var.name].shape[0]
 
-            fp     = os.path.join(vdir,"var-" + var.name + ".npy.gz")
-            values = self.tgt_vars_values[var.name]
-            count  = self.tgt_vars_values[var.name].shape[0]
+                log.info("Dumping %d input var %s values to %s" % (
+                    count, var.name, fp
+                ))
+                gzfh = gzip.GzipFile(fp,"w")
+                np.save(file=gzfh, arr=self.tgt_vars_values[var.name])
 
-            log.info("Dumping %d input var %s values to %s" % (
-                count, var.name, fp
-            ))
-            gzfh = gzip.GzipFile(fp,"w")
-            np.save(file=gzfh, arr=self.tgt_vars_values[var.name])
+        if(self.trs_fb_file != None):
+            log.info("Dumping fixed/random indicators to %s" % self.trs_fb_file)
+            gzfh = gzip.GzipFile(self.trs_fb_file,"w")
+            np.save(file=gzfh, arr=self.fixed_bits)
         
 
     def initialiseTTest(self):
