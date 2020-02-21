@@ -108,6 +108,14 @@ class TTestCapture(object):
 
         self.zeros_as_fixed_value = False
 
+    def getFixedTraces(self):
+        fixed_idx = np.nonzero(self.fixed_bits >= 1)
+        return self.traces[fixed_idx]
+
+    def getRandomTraces(self):
+        rand_idx = np.nonzero(self.fixed_bits  < 1)
+        return self.traces[rand_idx]
+
     def getVariableByName(self, name):
         """
         Return a reference to the object repesenting an experiment variable
