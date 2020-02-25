@@ -121,7 +121,7 @@ class TTestCapture(object):
         return self.tgt_vars_values[varname][fixed_idx]
 
     def getVariableValuesForRandomTraces(self, varname):
-        rand_idx = np.nonzero(self.fixed_bits >= 1)
+        rand_idx = np.nonzero(self.fixed_bits  < 1)
         return self.tgt_vars_values[varname][rand_idx]
 
     def getVariableByName(self, name):
