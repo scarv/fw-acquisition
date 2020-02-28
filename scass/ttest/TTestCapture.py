@@ -339,7 +339,7 @@ class TTestCapture(object):
         
         self.traces [self.trace_count] = new_trace
 
-        for var in self.tgt_vars_ttest:
+        for var in self.tgt_vars:
             for i in range(0,var.size):
                 self.tgt_vars_values[var.name][self.trace_count][i] = \
                     var.current_value[i]
