@@ -15,14 +15,3 @@ $> cd fw-acquisition
 $> sudo pip3 install -r requirements.txt
 ```
 
-## Todo List:
-
-- [X] Scope Interface
-- [X] Trace File RW library
-- [ ] Trace File Modifiation
-- [X] Target Program Communication library
-- [X] Target Program C code
-- [ ] Trace analysis library
-- [ ] TTest
-- [ ] CPA Attack
-- [ ] Analysis flow automation / scripting
