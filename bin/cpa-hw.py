@@ -13,6 +13,9 @@ import logging as log
 import gzip
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import butter
+from scipy.signal import lfilter
+from scipy.signal import freqz
 
 scass_path = os.path.expandvars(
     os.path.join(os.path.dirname(__file__),"../")
@@ -39,6 +42,14 @@ def parse_args():
     parser.add_argument("-l", "--logfile", type=str,default=None,
         help="Log CPA information and progress to this file.)")
     
+    parser.add_argument("--low-pass",type = int,
+        help="Run a low pass filter before analysis at this frequency.")
+    
+    parser.add_argument("--high-pass",type = int,
+        help="Run a high pass filter before analysis at this frequency.")
+    
+    parser.add_argument("--sample-rate",type = int, default=250000000,
+        help="Sample rate - used for filtering.")
 
     parser.add_argument("--dump",type=str,
         help="Write the final HW corrolation trace to this file.")
@@ -47,6 +58,17 @@ def parse_args():
         help="Write plot to this file path")
     
     return parser.parse_args()
+
+def butter_lowpass(cutoff, fs, order=5, btype='low'):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype=btype, analog=False)
+    return b, a
+
+def butter_lowpass_filter(data, cutoff, fs, btype, order=10):
+    b, a = butter_lowpass(cutoff, fs, order=order, btype=btype)
+    y = lfilter(b, a, data)
+    return y
 
 def hw(x):
     """Return hamming weight of x"""
@@ -84,6 +106,18 @@ def main(args):
 
         traces          = traces[select_idx]
         inputs          = inputs[select_idx]
+
+    if(args.low_pass):
+        log.info("Running low-pass filter at %dHz"% args.low_pass)
+        log.info("Sample rate set at: %dHz"% args.sample_rate)
+        traces = butter_lowpass_filter(
+            traces, args.low_pass, args.sample_rate, 'lowpass')
+
+    if(args.high_pass):
+        log.info("Running high-pass filter at %dHz"% args.high_pass)
+        log.info("Sample rate set at: %dHz"% args.sample_rate)
+        traces = butter_lowpass_filter(
+            traces, args.high_pass, args.sample_rate,'highpass')
 
     D_trace_count, T_trace_len  = traces.shape
 
