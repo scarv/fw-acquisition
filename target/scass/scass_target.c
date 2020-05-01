@@ -163,10 +163,10 @@ void do_goto(scass_target_cfg * cfg) {
 
     void (*func)();
 
-    uint32_t target = ((uint32_t)cfg -> scass_io_rd_char() <<  0) |
-                      ((uint32_t)cfg -> scass_io_rd_char() <<  8) |
-                      ((uint32_t)cfg -> scass_io_rd_char() << 16) |
-                      ((uint32_t)cfg -> scass_io_rd_char() << 24) ;
+    uint32_t target = ((uint32_t)cfg -> scass_io_rd_char() <<  0);
+             target|= ((uint32_t)cfg -> scass_io_rd_char() <<  8);
+             target|= ((uint32_t)cfg -> scass_io_rd_char() << 16);
+             target|= ((uint32_t)cfg -> scass_io_rd_char() << 24);
 
     func = (void(*)())target;
 
