@@ -12,6 +12,9 @@ import logging as log
 import gzip
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import butter
+from scipy.signal import lfilter
+from scipy.signal import freqz
 
 scass_path = os.path.expandvars(
     os.path.join(os.path.dirname(__file__),"../")
@@ -34,6 +37,15 @@ def parse_args():
 
     parser.add_argument("--second-order",action="store_true",default=False,
         help="Do a second order TTest.")
+    
+    parser.add_argument("--low-pass",type = int,
+        help="Run a low pass filter before analysis at this frequency.")
+    
+    parser.add_argument("--high-pass",type = int,
+        help="Run a high pass filter before analysis at this frequency.")
+    
+    parser.add_argument("--sample-rate",type = int, default=250000000,
+        help="Sample rate - used for filtering.")
 
     parser.add_argument("--ttrace-dump",type=argparse.FileType("wb"),
         help="Dump the resulting ttrace to this file for later use.")
@@ -49,6 +61,17 @@ def parse_args():
 
 
     return parser.parse_args()
+
+def butter_lowpass(cutoff, fs, order=5, btype='low'):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype=btype, analog=False)
+    return b, a
+
+def butter_lowpass_filter(data, cutoff, fs, btype, order=10):
+    b, a = butter_lowpass(cutoff, fs, order=order, btype=btype)
+    y = lfilter(b, a, data)
+    return y
 
 def main():
     """
@@ -77,6 +100,22 @@ def main():
 
     ts_fixed    = traces[fixed_idx]
     ts_random   = traces[ rand_idx]
+
+    if(args.low_pass):
+        log.info("Running low-pass filter at %dHz"% args.low_pass)
+        log.info("Sample rate set at: %dHz"% args.sample_rate)
+        ts_fixed = butter_lowpass_filter(
+            ts_fixed , args.low_pass, args.sample_rate, 'lowpass')
+        ts_random= butter_lowpass_filter(
+            ts_random, args.low_pass, args.sample_rate, 'lowpass')
+
+    if(args.high_pass):
+        log.info("Running high-pass filter at %dHz"% args.high_pass)
+        log.info("Sample rate set at: %dHz"% args.sample_rate)
+        ts_fixed = butter_lowpass_filter(
+            ts_fixed , args.high_pass, args.sample_rate,'highpass')
+        ts_random= butter_lowpass_filter(
+            ts_random, args.high_pass, args.sample_rate,'highpass')
 
     log.info("Running TTest...")
     ttest       = scass.ttest.TTest (
