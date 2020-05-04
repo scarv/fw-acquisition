@@ -50,8 +50,17 @@ def parse_args():
     parser.add_argument("--ttrace-dump",type=argparse.FileType("wb"),
         help="Dump the resulting ttrace to this file for later use.")
 
+    parser.add_argument("--trim-start",type=int,default = 0,
+        help="Trim this many samples from start of graph.")
+    
+    parser.add_argument("--trim-end",type=int,default = 0,
+        help="Trim this many samples from end of graph.")
+
     parser.add_argument("--abs",action="store_true",
         help="Plot the absolute value of the TTrace.")
+    
+    parser.add_argument("--avg",action="store_true",
+        help="Plot the average trace on a separate axis.")
 
     parser.add_argument("trs_fixed",type=str,
         help="File path of .npy array indicating if traces are fixed or random.")
@@ -98,6 +107,8 @@ def main():
     fixed_idx   = np.nonzero(fbits >= 1)
     rand_idx    = np.nonzero(fbits <  1)
 
+    average_trace=np.mean(traces,axis=0)
+
     ts_fixed    = traces[fixed_idx]
     ts_random   = traces[ rand_idx]
 
@@ -116,6 +127,10 @@ def main():
             ts_fixed , args.high_pass, args.sample_rate,'highpass')
         ts_random= butter_lowpass_filter(
             ts_random, args.high_pass, args.sample_rate,'highpass')
+    
+    ts_fixed =ts_fixed[:,args.trim_start:-args.trim_end]
+    ts_random=ts_random[:,args.trim_start:-args.trim_end]
+    average_trace=average_trace[args.trim_start:-args.trim_end]
 
     log.info("Running TTest...")
     ttest       = scass.ttest.TTest (
@@ -131,29 +146,33 @@ def main():
     if(args.graph_ttest):
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
         plt.clf()
-        fig = plt.gcf()
+        fig,ax1 = plt.subplots()
         fig.set_size_inches(9.5,5,forward=True)
         plt.title("TTest Results")
         plt.xlabel("Sample")
         plt.ylabel("Leakage")
 
-        plt.plot(
+        if(args.avg):
+            ax2 = ax1.twinx()
+            ax2.plot(average_trace, linewidth=0.2)
+
+        ax1.plot(
             [args.critical_value]*ttest.ttrace.size,
             linewidth=0.25,color="red"
         )
 
         if(args.abs):
-            plt.plot(np.abs(ttest.ttrace), linewidth=0.1)
+            ax1.plot(np.abs(ttest.ttrace), linewidth=0.2)
         else:
-            plt.plot(       ttest.ttrace , linewidth=0.1)
+            ax1.plot(       ttest.ttrace , linewidth=0.2)
 
-            plt.plot(
+            ax1.plot(
                 [-args.critical_value]*ttest.ttrace.size,
                 linewidth=0.25,color="red"
             )
 
-        plt.tight_layout()
-        plt.savefig(args.graph_ttest,bbox_inches="tight", pad_inches=0)
+        fig.tight_layout()
+        fig.savefig(args.graph_ttest,bbox_inches="tight", pad_inches=0)
 
 
 if(__name__ == "__main__"):

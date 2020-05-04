@@ -52,6 +52,12 @@ def parse_args():
         help="File paths of operands to a bitwise not. Check hw of result.")
     
 
+    parser.add_argument("--trim-start",type=int,default = 0,
+        help="Trim this many samples from start of graph.")
+    
+    parser.add_argument("--trim-end",type=int,default = 0,
+        help="Trim this many samples from end of graph.")
+
     parser.add_argument("--trace-filter-out",type=str,
         help="Filepath to Mask to filter out a subset of traces from <traces>")
     
@@ -222,6 +228,8 @@ def main(args):
         log.info("Sample rate set at: %dHz"% args.sample_rate)
         traces = butter_lowpass_filter(
             traces, args.high_pass, args.sample_rate,'highpass')
+
+    traces=traces[:,args.trim_start:-args.trim_end]
     
     plt.figure(1)
     fig = plt.gcf()
@@ -233,7 +241,7 @@ def main(args):
             label   = "%s-%s" % (name, v)
             log.info("Calculating hamming weight for %s"%(label))
             R       = get_hamming_weight(values[v],traces)
-            plt.plot(R.transpose(),linewidth=0.1,label=label)
+            plt.plot(R.transpose(),linewidth=0.2,label=label)
 
     plt.legend()
     plt.tight_layout()
