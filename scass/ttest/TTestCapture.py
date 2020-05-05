@@ -235,7 +235,7 @@ class TTestCapture(object):
 
         for var in self.tgt_vars:
 
-            if(var.is_input and var.is_ttest_variable):
+            if(var.is_input and (var.is_ttest_variable or var.is_randomisable)):
                 fixed_val = None
 
                 if(self.zeros_as_fixed_value):
@@ -244,6 +244,7 @@ class TTestCapture(object):
                     fixed_val = secrets.token_bytes(var.size)
 
                 var.setFixedValue(fixed_val)
+                var.takeFixedValue()
 
             self.target.doSetVarFixedValue(var.vid, var.fixed_value)
             self.target.doSetVarValue     (var.vid, var.fixed_value)
@@ -280,8 +281,12 @@ class TTestCapture(object):
         """
         # No need to do anything since fixed values are already
         # On the target device.
-        for var in self.tgt_vars_ttest:
-            var.takeFixedValue()
+        for var in self.tgt_vars:
+            if(var.is_ttest_variable):
+                var.takeFixedValue()
+            elif(var.is_randomisable):
+                var.randomiseValue()
+                self.target.doSetVarValue(var.vid, var.current_value)
 
 
     def _pre_gather_random_value_trace(self):
@@ -289,7 +294,7 @@ class TTestCapture(object):
         Gathers a single trace where all TTest variables take on
         their random values.
         """
-        for var in self.tgt_vars_ttest:
+        for var in self.tgt_vars:
             if(var.is_randomisable):
                 var.randomiseValue()
                 self.target.doSetVarValue(var.vid, var.current_value)
