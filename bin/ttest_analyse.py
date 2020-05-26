@@ -8,6 +8,9 @@ import os
 import sys
 import argparse
 import logging as log
+import gc
+
+from tqdm import tqdm
 
 import gzip
 import numpy as np
@@ -62,6 +65,10 @@ def parse_args():
     parser.add_argument("--avg",action="store_true",
         help="Plot the average trace on a separate axis.")
 
+    parser.add_argument("--fig-width",type=float,default=9.5)
+    parser.add_argument("--fig-height",type=float,default=5)
+    parser.add_argument("--fig-title",type=str,default="TTest Results")
+
     parser.add_argument("trs_fixed",type=str,
         help="File path of .npy array indicating if traces are fixed or random.")
 
@@ -77,7 +84,7 @@ def butter_lowpass(cutoff, fs, order=5, btype='low'):
     b, a = butter(order, normal_cutoff, btype=btype, analog=False)
     return b, a
 
-def butter_lowpass_filter(data, cutoff, fs, btype, order=10):
+def butter_filter(data, cutoff, fs, btype, order=5):
     b, a = butter_lowpass(cutoff, fs, order=order, btype=btype)
     y = lfilter(b, a, data)
     return y
@@ -104,6 +111,11 @@ def main():
     fbits       = np.load(gzfh_fixed)
     traces      = np.load(gzfh_traces)
 
+    del gzfh_fixed
+    del gzfh_traces
+
+    gc.collect()
+
     fixed_idx   = np.nonzero(fbits >= 1)
     rand_idx    = np.nonzero(fbits <  1)
 
@@ -111,27 +123,36 @@ def main():
 
     ts_fixed    = traces[fixed_idx]
     ts_random   = traces[ rand_idx]
-
-    if(args.low_pass):
-        log.info("Running low-pass filter at %dHz"% args.low_pass)
-        log.info("Sample rate set at: %dHz"% args.sample_rate)
-        ts_fixed = butter_lowpass_filter(
-            ts_fixed , args.low_pass, args.sample_rate, 'lowpass')
-        ts_random= butter_lowpass_filter(
-            ts_random, args.low_pass, args.sample_rate, 'lowpass')
-
-    if(args.high_pass):
-        log.info("Running high-pass filter at %dHz"% args.high_pass)
-        log.info("Sample rate set at: %dHz"% args.sample_rate)
-        ts_fixed = butter_lowpass_filter(
-            ts_fixed , args.high_pass, args.sample_rate,'highpass')
-        ts_random= butter_lowpass_filter(
-            ts_random, args.high_pass, args.sample_rate,'highpass')
     
     ts_fixed =ts_fixed[:,args.trim_start:-args.trim_end]
     ts_random=ts_random[:,args.trim_start:-args.trim_end]
     average_trace=average_trace[args.trim_start:-args.trim_end]
 
+    gc.collect()
+
+    nfixed = ts_fixed.shape[0]
+    nrandom= ts_random.shape[0]
+
+    if(args.low_pass):
+        log.info("Running low-pass filter at %dHz"% args.low_pass)
+        log.info("Sample rate set at: %dHz"% args.sample_rate)
+        for i in tqdm(range(0, nfixed)):
+            ts_fixed[i] = butter_filter(
+                ts_fixed[i] , args.low_pass, args.sample_rate, 'lowpass')
+        for i in tqdm(range(0, nrandom)):
+            ts_random[i]= butter_filter(
+                ts_random[i], args.low_pass, args.sample_rate, 'lowpass')
+
+    if(args.high_pass):
+        log.info("Running high-pass filter at %dHz"% args.high_pass)
+        log.info("Sample rate set at: %dHz"% args.sample_rate)
+        for i in tqdm(range(0, nfixed)):
+            ts_fixed[i] = butter_filter(
+                ts_fixed[i] , args.high_pass, args.sample_rate, 'highpass')
+        for i in tqdm(range(0, nrandom)):
+            ts_random[i]= butter_filter(
+                ts_random[i], args.high_pass, args.sample_rate, 'highpass')
+    
     log.info("Running TTest...")
     ttest       = scass.ttest.TTest (
         ts_fixed,
@@ -147,28 +168,29 @@ def main():
         log.info("Writing T Statistic Graph: %s" % args.graph_ttest)
         plt.clf()
         fig,ax1 = plt.subplots()
-        fig.set_size_inches(9.5,5,forward=True)
-        plt.title("TTest Results")
+        fig.set_size_inches(args.fig_width,args.fig_height,forward=True)
+        plt.title(args.fig_title)
         plt.xlabel("Sample")
-        plt.ylabel("Leakage")
+        plt.ylabel("T-Statistic")
 
         if(args.avg):
             ax2 = ax1.twinx()
-            ax2.plot(average_trace, linewidth=0.2)
+            ax2.set_label("Average Power Consumption, DC blocked")
+            ax2.plot(average_trace, color='green', linewidth=0.3)
 
         ax1.plot(
             [args.critical_value]*ttest.ttrace.size,
-            linewidth=0.25,color="red"
+            linewidth=0.3,color="red"
         )
 
         if(args.abs):
-            ax1.plot(np.abs(ttest.ttrace), linewidth=0.2)
+            ax1.plot(np.abs(ttest.ttrace), linewidth=0.3)
         else:
-            ax1.plot(       ttest.ttrace , linewidth=0.2)
+            ax1.plot(       ttest.ttrace , linewidth=0.3)
 
             ax1.plot(
                 [-args.critical_value]*ttest.ttrace.size,
-                linewidth=0.25,color="red"
+                linewidth=0.3,color="red"
             )
 
         fig.tight_layout()
