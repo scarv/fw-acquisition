@@ -47,6 +47,15 @@ def parse_args():
 
     parser.add_argument("--op-xor",type=str,nargs=2,
         help="File paths of operands to a bitwise xor. Check hw of result.")
+    
+    parser.add_argument("--op-rori",type=str,nargs="+",
+        help="File paths of operands to a rotation. Check hw of result.")
+    
+    parser.add_argument("--op-srli",type=str,nargs="+",
+        help="File paths of operands to a rotation. Check hw of result.")
+    
+    parser.add_argument("--op-slli",type=str,nargs="+",
+        help="File paths of operands to a rotation. Check hw of result.")
 
     parser.add_argument("--op-not",type=str,nargs="+",
         help="File paths of operands to a bitwise not. Check hw of result.")
@@ -132,6 +141,18 @@ def get_operation_results_to_check(args):
         lhs = np.load(gzip.GzipFile(args.op_xor[0],"r"))
         rhs = np.load(gzip.GzipFile(args.op_xor[1],"r"))
         ops_to_check.append(("xor",{"result":lhs ^ rhs,"lhs":lhs,"rhs":rhs}))
+
+    if(args.op_rori):
+        rhs = np.load(gzip.GzipFile(args.op_rori[0],"r"))
+        ops_to_check.append(("rori",{"result":~rhs,"rhs":rhs}))
+
+    if(args.op_slli):
+        rhs = np.load(gzip.GzipFile(args.op_slli[0],"r"))
+        ops_to_check.append(("slli",{"result":~rhs,"rhs":rhs}))
+
+    if(args.op_srli):
+        rhs = np.load(gzip.GzipFile(args.op_srli[0],"r"))
+        ops_to_check.append(("srli",{"result":~rhs,"rhs":rhs}))
     
     if(args.op_not):
         rhs = np.load(gzip.GzipFile(args.op_not[0],"r"))
