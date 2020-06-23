@@ -12,7 +12,6 @@ import gc
 
 from tqdm import tqdm
 
-import gzip
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import butter
@@ -25,6 +24,7 @@ scass_path = os.path.expandvars(
 sys.path.append(scass_path)
 
 import scass
+from   scass.trace import loadTracesFromDisk
 
 def parse_args():
     """
@@ -105,11 +105,8 @@ def main():
 
     log.info("Decompressing traceset %s" % args.trs_trace)
 
-    gzfh_fixed  = gzip.GzipFile(args.trs_fixed,"r")
-    gzfh_traces = gzip.GzipFile(args.trs_trace,"r")
-
-    fbits       = np.load(gzfh_fixed)
-    traces      = np.load(gzfh_traces)
+    fbits       = loadTracesFromDisk(args.trs_fixed)
+    traces      = loadTracesFromDisk(args.trs_trace)
 
     del gzfh_fixed
     del gzfh_traces

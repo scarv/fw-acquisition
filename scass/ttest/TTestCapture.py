@@ -6,7 +6,6 @@ import os
 
 import logging as log
 
-import gzip
 import numpy as np
 
 from tqdm    import tqdm
@@ -15,6 +14,7 @@ from ..comms import Target
 from ..scope.Scope import Scope
 from ..scope.ScopeChannel import ScopeChannel
 from ..trace import TraceWriterBase
+from ..trace import saveTracesToDisk
 
 def no_progress_bar(x):
     return x
@@ -404,8 +404,7 @@ class TTestCapture(object):
             log.info("Dumping %d traces to %s" % (
                 self.traces.shape[0], self.trs_file))
             
-            gzfh = gzip.GzipFile(self.trs_file,"w")
-            np.save(file=gzfh, arr=self.traces)
+            saveTracesToDisk(self.trs_file, self.traces)
             
             log.info("Dumped %d traces in %s seconds" % (
                 self.traces.shape[0],
@@ -422,13 +421,11 @@ class TTestCapture(object):
                 log.info("Dumping %d input var %s values to %s" % (
                     count, var.name, fp
                 ))
-                gzfh = gzip.GzipFile(fp,"w")
-                np.save(file=gzfh, arr=self.tgt_vars_values[var.name])
+                saveTracesToDisk(gp, self.tgt_vars_values[var.name])
 
         if(self.trs_fb_file != None):
             log.info("Dumping fixed/random indicators to %s" % self.trs_fb_file)
-            gzfh = gzip.GzipFile(self.trs_fb_file,"w")
-            np.save(file=gzfh, arr=self.fixed_bits)
+            saveTracesToDisk(self.trs_fb_file, self.fixed_bits)
         
 
     def initialiseTTest(self):

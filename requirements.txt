@@ -6,3 +6,4 @@ tqdm
 pyserial
 pyaes
 scipy
+lz4

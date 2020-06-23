@@ -10,7 +10,6 @@ import sys
 import argparse
 import logging as log
 
-import gzip
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import butter
@@ -23,6 +22,7 @@ scass_path = os.path.expandvars(
 sys.path.append(scass_path)
 
 import scass
+from   scass.trace import loadTracesFromDisk
 
 def parse_args():
     """
@@ -92,16 +92,12 @@ def main(args):
 
     log.info("Loading traces...")
     
-    gzfh_traces     = gzip.GzipFile(args.traces,"r")
-    traces          = np.load(gzfh_traces)
-    
-    gzfh_inputs     = gzip.GzipFile(args.inputs,"r")
-    inputs          = np.load(gzfh_inputs)
+    traces          = loadTracesFromDisk(args.traces)
+    inputs          = loadTracesFromDisk(args.inputs)
 
     if(args.trace_filter_out != None):
         log.info("Filtering traces...")
-        gzfh_filter_out = gzip.GzipFile(args.trace_filter_out,"r")
-        fbits           = np.load(gzfh_filter_out)
+        fbits           = loadTracesFromDisk(args.trace_filter_out)
         select_idx      = np.nonzero(fbits <  1)
 
         traces          = traces[select_idx]
