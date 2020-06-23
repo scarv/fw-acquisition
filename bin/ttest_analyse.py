@@ -176,7 +176,7 @@ def main():
         if(args.avg):
             ax2 = ax1.twinx()
             ax2.set_label("Average Power Consumption, DC blocked")
-            ax2.plot(average_trace, color='green', linewidth=0.3)
+            ax2.plot(average_trace, color='green', linewidth=0.15)
 
         ax1.plot(
             [args.critical_value]*ttest.ttrace.size,
