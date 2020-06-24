@@ -59,6 +59,18 @@ static void dump_bytes (
 }
 
 
+//! Read a 32-bit integer from the UART.
+static uint32_t read_uint32 (
+    scass_target_cfg * cfg
+) {
+    uint32_t recv  = ((uint32_t)cfg -> scass_io_rd_char() <<  0);
+             recv |= ((uint32_t)cfg -> scass_io_rd_char() <<  8);
+             recv |= ((uint32_t)cfg -> scass_io_rd_char() << 16);
+             recv |= ((uint32_t)cfg -> scass_io_rd_char() << 24);
+    return recv;
+}
+
+
 /*!
 @brief Dump a serialised version of a variable struct to the UART
 @returns Zero if successful. non-zero otherwise.
@@ -163,10 +175,7 @@ void do_goto(scass_target_cfg * cfg) {
 
     void (*func)();
 
-    uint32_t target = ((uint32_t)cfg -> scass_io_rd_char() <<  0);
-             target|= ((uint32_t)cfg -> scass_io_rd_char() <<  8);
-             target|= ((uint32_t)cfg -> scass_io_rd_char() << 16);
-             target|= ((uint32_t)cfg -> scass_io_rd_char() << 24);
+    uint32_t target = read_uint32(cfg);
 
     func = (void(*)())target;
 
@@ -194,6 +203,38 @@ static int run_experiment (
     return failure;
 
 }
+
+
+/*!
+@brief Send the clock information for the target back to the host.
+*/
+void do_get_clk_info (
+    scass_target_cfg      * cfg,  //!< The target configuration.
+    scass_target_clk_info * clk,  //!< The clock to send info about
+) {
+    // First, write a 1-byte value representing the number of
+    // different system clock rates possible.
+    cfg -> scass_io_wr_char(clk -> clk_rates_num);
+
+    // For each system clock rate, send a 4-byte value to the host
+    // representing that rate in hertz.
+    for(uint8_t i = 0; i < clk -> clk_rates_num; i ++) {
+        dump_uint32(cfg, clk -> clk_rates[i]);
+    }
+
+    // Send the current clock rate.
+    dump_uint32(cfg, clk -> clk_current);
+    
+    // Send the external clock rate.
+    dump_uint32(cfg, clk -> clk_current);
+
+    // Send the current clock source - encoded as 1 byte.
+    cfg -> scass_io_wr_char(clk -> clk_source_current   );
+    
+    // Send the available clock sources - encoded as 1 byte bitfield.
+    cfg -> scass_io_wr_char(clk -> clk_source_avail     );
+}
+
 
 void scass_loop (
     scass_target_cfg * cfg
@@ -280,6 +321,17 @@ void scass_loop (
             case SCASS_CMD_RAND_SEED:
                 success = seed_randomness(cfg);
                 break;
+
+            case SCASS_CMD_GET_CLK_INFO:
+                do_get_clk_info(cfg, cfg -> sys_clk);
+                break;
+
+            case SCASS_CMD_SET_SYS_CLK:
+                uint32_t    ext_rate = read_uint32(cfg);
+                uint32_t    clk_rate = read_uint32(cfg);
+                scass_clk_src_t src  = cfg -> scass_io_rd_char();
+                cfg -> sys_clk.ext_clk_rate = ext_rate;
+                cfg -> sys_clk -> sys_set_clk_rate(rate, src);
 
             default:
                 break;

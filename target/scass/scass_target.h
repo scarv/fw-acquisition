@@ -21,6 +21,12 @@
 #define SCASS_CMD_RAND_GET_LEN          'L'
 #define SCASS_CMD_RAND_GET_INTERVAL     'l'
 #define SCASS_CMD_RAND_SEED             'S'
+#define SCASS_CMD_GET_CLK_INFO          'c'
+#define SCASS_CMD_SET_SYS_CLK           'r'
+
+#define SCASS_CLK_SRC_EXTERNAL          0b00000001
+#define SCASS_CLK_SRC_INTERNAL          0b00000010
+#define SCASS_CLK_SRC_PLL               0b00000100
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'
@@ -34,6 +40,9 @@
 #define SCASS_FLAGS_TTEST_IN (SCASS_FLAG_RANDOMISE |\
                               SCASS_FLAG_INPUT     |\
                               SCASS_FLAG_TTEST_VAR )
+
+//! Typedef for a clock source indicator.
+typedef uint8_t scass_clk_src_t;
 
 /*!
 @brief Describes a single input/output variable for a SCASS managed experiment.
@@ -55,6 +64,46 @@ struct __scass_target_var {
     
     //! Single bit status flags.
     uint32_t flags;
+
+};
+
+/*!
+@brief A container for target clocking information.
+*/
+typedef struct __scass_target_clk_info scass_target_clk_info;
+struct         __scass_target_clk_info {
+    
+    //! Array of possible clock rates in Hertz.
+    uint32_t *clk_rates;
+
+    //! Length of clk_rates.
+    uint8_t   clk_rates_num;
+    
+    //! The current clock speed in hertz.
+    uint32_t  clk_current;
+    
+    //! If the clock source is external, this is its base rate.
+    uint32_t  ext_clk_rate;
+    
+    //! Current source of the clock.
+    scass_clk_src_t clk_source_current;
+    
+    //! Available clock sources.
+    scass_clk_src_t clk_source_avail;
+    
+    /*!
+    @brief Function pointer targets provide to set the current clock rate.
+    @param in rate   - The new clock frequency in hertz.
+    @param in source - The source of the clock.
+    @param inout clk_cfg - The configuration object for the clock. Updated
+        with the final clock rate when it is set.
+    @returns void
+    */
+    void (*sys_set_clk_rate)(
+        uint32_t                rate    ,
+        scass_clk_src_t         src     ,
+        scass_target_clk_info * clk_cfg
+    );
 
 };
 
@@ -97,6 +146,9 @@ struct __scass_target_cfg {
     @note If set to zero then the randomness is never updated.
     */
     uint32_t  randomness_refresh_rate;
+    
+    //! Contains information on possible clock rates for the target.
+    scass_target_clk_info   sys_clk;
 
     /*!
     @brief Read a single character from the target UART port.

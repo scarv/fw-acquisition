@@ -6,7 +6,8 @@ try:
 except ModuleNotFoundError as m:
     log.warn("serial module not found. Target communication functionality will be unavailable")
 
-from .TargetVar import TargetVar
+from .TargetVar     import TargetVar
+from .TargetClkInfo import *
 
 SCASS_CMD_HELLOWORLD            = 'H'.encode("ascii")
 SCASS_CMD_INIT_EXPERIMENT       = 'I'.encode("ascii")
@@ -27,6 +28,8 @@ SCASS_CMD_SET_VAR_FIXED         = '4'.encode("ascii")
 SCASS_CMD_RAND_GET_LEN          = 'L'.encode("ascii")
 SCASS_CMD_RAND_GET_INTERVAL     = 'l'.encode("ascii")
 SCASS_CMD_RAND_SEED             = 'S'.encode("ascii")
+SCASS_CMD_GET_CLK_INFO          = 'c'.encode("ascii")
+SCASS_CMD_SET_SYS_CLK           = 'r'.encode("ascii")
 
 SCASS_FLAG_RANDOMISE            = (0x1 << 0)
 SCASS_FLAG_INPUT                = (0x1 << 1)
@@ -324,6 +327,61 @@ class Target(object):
             return False
 
 
+    def doGetSysClkInfo(self):
+        """
+        Return a TargetClkInfo object describing the current
+        system clock configuration.
+        """
+        self.__sendByte(SCASS_CMD_GET_CLK_INFO)
+
+        rates   = []
+        sources = []
+
+        num_rates = self.__recvByte()
+        for i in range(0, num_rates):
+            rates.append(self.__recvInt32())
+        
+        # Current clock rate
+        rate    = self.__recvInt32()
+        
+        # External clock rate
+        ext     = self.__recvInt32()
+
+        # current clock source
+        source  = self.__recvByte()
+
+        # Valid sources as an 8-bit bitfield.
+        s = self.__recvByte()
+        for i in range(0,8):
+            if(s & (1<<i)):
+                sources.append(1<<i)
+
+        tr = TargetClkInfo(
+            rates, sources, rate, source, ext
+        )
+
+        return tr
+
+
+    def doSetSysClk(self, ext_clk_rate, desired_rate, desired_src):
+        """
+        Try to set the system clock source and rate. Also update the
+        external clock rate.
+        To determine if the update was a success, use doGetSysClkInfo
+        to check the current_src and current_rate are as expected.
+        """
+        self.__sendByte(SCASS_CMD_SET_SYS_CLK)
+        
+        b_ext   = ext_clk_rate.to_bytes(4,byteorder="little")
+        b_rate  = desired_rate.to_bytes(4,byteorder="little")
+        b_src   = desired_src .to_bytes(1,byteorder="little")
+
+        self.__sendBytes(b_ext)
+        self.__sendBytes(b_rate)
+        self.__sendBytes(b_src[0])
+        return self.__cmdSuccess()
+
+
     def doHelloWorld(self):
         """
         Run a hello world test of communications.
@@ -332,12 +390,17 @@ class Target(object):
         self.__sendByte(SCASS_CMD_HELLOWORLD)
         return self.__cmdSuccess()
 
+    def __sendBytes(self, by)
+        for b in by:
+            self.__sendByte(b)
 
     def __sendByte(self, b):
         #print("> %s"%(str(b)))
         self.port.write(b)
         self.port.flush()
 
+    def __recvInt32(self):
+        return int.from_bytes(self.__recvBytes(4),byteorder="big")
 
     def __recvByte(self):
         rsp = self.__recvBytes(1)
