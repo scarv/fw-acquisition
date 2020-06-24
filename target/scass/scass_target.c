@@ -208,9 +208,9 @@ static int run_experiment (
 /*!
 @brief Send the clock information for the target back to the host.
 */
-void do_get_clk_info (
+static int do_get_clk_info (
     scass_target_cfg      * cfg,  //!< The target configuration.
-    scass_target_clk_info * clk,  //!< The clock to send info about
+    scass_target_clk_info * clk   //!< The clock to send info about
 ) {
     // First, write a 1-byte value representing the number of
     // different system clock rates possible.
@@ -233,8 +233,25 @@ void do_get_clk_info (
     
     // Send the available clock sources - encoded as 1 byte bitfield.
     cfg -> scass_io_wr_char(clk -> clk_source_avail     );
+
+    return 0;
 }
 
+
+//! Set current system clock information.
+static int do_set_clk_info (
+    scass_target_cfg * cfg
+) {
+    uint32_t    ext_rate = read_uint32(cfg);
+    uint32_t    clk_rate = read_uint32(cfg);
+    
+    scass_clk_src_t src  = cfg -> scass_io_rd_char();
+
+    cfg -> sys_clk.ext_clk_rate = ext_rate;
+    cfg -> sys_clk.sys_set_clk_rate(clk_rate, src, &cfg -> sys_clk);
+
+    return 0;
+}
 
 void scass_loop (
     scass_target_cfg * cfg
@@ -323,15 +340,12 @@ void scass_loop (
                 break;
 
             case SCASS_CMD_GET_CLK_INFO:
-                do_get_clk_info(cfg, cfg -> sys_clk);
+                success = do_get_clk_info(cfg, &cfg -> sys_clk);
                 break;
 
             case SCASS_CMD_SET_SYS_CLK:
-                uint32_t    ext_rate = read_uint32(cfg);
-                uint32_t    clk_rate = read_uint32(cfg);
-                scass_clk_src_t src  = cfg -> scass_io_rd_char();
-                cfg -> sys_clk.ext_clk_rate = ext_rate;
-                cfg -> sys_clk -> sys_set_clk_rate(rate, src);
+                success = do_set_clk_info(cfg);
+                break;
 
             default:
                 break;
