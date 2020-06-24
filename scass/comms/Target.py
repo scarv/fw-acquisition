@@ -337,7 +337,7 @@ class Target(object):
         rates   = []
         sources = []
 
-        num_rates = self.__recvByte()
+        num_rates = int.from_bytes(self.__recvByte(),byteorder="big")
         for i in range(0, num_rates):
             rates.append(self.__recvInt32())
         
@@ -348,10 +348,10 @@ class Target(object):
         ext     = self.__recvInt32()
 
         # current clock source
-        source  = self.__recvByte()
+        source  = int.from_bytes(self.__recvByte(),byteorder="big")
 
         # Valid sources as an 8-bit bitfield.
-        s = self.__recvByte()
+        s = int.from_bytes(self.__recvByte(),byteorder="big")
         for i in range(0,8):
             if(s & (1<<i)):
                 sources.append(1<<i)
@@ -390,7 +390,7 @@ class Target(object):
         self.__sendByte(SCASS_CMD_HELLOWORLD)
         return self.__cmdSuccess()
 
-    def __sendBytes(self, by)
+    def __sendBytes(self, by):
         for b in by:
             self.__sendByte(b)
 

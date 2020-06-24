@@ -108,6 +108,9 @@ class TTestCapture(object):
 
         self.zeros_as_fixed_value = False
 
+        # Target clock information. Populated in _pre_run_ttest
+        self.target_clk_info= None
+
     def getFixedTraces(self):
         fixed_idx = np.nonzero(self.fixed_bits >= 1)
         return self.traces[fixed_idx]
@@ -263,6 +266,7 @@ class TTestCapture(object):
         called.
         """
         self._assign_ttest_fixed_values()
+        self.target_clk_info = self.target.doGetSysClkInfo()
 
 
     def _pre_gather_trace(self):
