@@ -209,30 +209,26 @@ static int run_experiment (
 @brief Send the clock information for the target back to the host.
 */
 static int do_get_clk_info (
-    scass_target_cfg      * cfg,  //!< The target configuration.
-    scass_target_clk_info * clk   //!< The clock to send info about
+    scass_target_cfg      * cfg   //!< The target configuration.
 ) {
     // First, write a 1-byte value representing the number of
     // different system clock rates possible.
-    cfg -> scass_io_wr_char(clk -> clk_rates_num);
+    cfg -> scass_io_wr_char(cfg -> num_clk_cfgs);
+
+    // Next, write a byte indicating the current clock rate.
+    cfg -> scass_io_wr_char(cfg -> current_clk_cfg);
 
     // For each system clock rate, send a 4-byte value to the host
-    // representing that rate in hertz.
-    for(uint8_t i = 0; i < clk -> clk_rates_num; i ++) {
-        dump_uint32(cfg, clk -> clk_rates[i]);
+    // representing that rate in hertz, followed by a 1-byte value
+    // indicating the clock source.
+    for(uint8_t i = 0; i < cfg -> num_clk_cfgs ; i ++) {
+        
+        // send clock rate
+        dump_uint32(cfg, cfg -> clk_cfgs[i].sys_clk_rate);
+        
+        // send clock source
+        cfg -> scass_io_wr_char(cfg -> clk_cfgs[i].sys_clk_src);
     }
-
-    // Send the current clock rate.
-    dump_uint32(cfg, clk -> clk_current);
-    
-    // Send the external clock rate.
-    dump_uint32(cfg, clk -> clk_current);
-
-    // Send the current clock source - encoded as 1 byte.
-    cfg -> scass_io_wr_char(clk -> clk_source_current   );
-    
-    // Send the available clock sources - encoded as 1 byte bitfield.
-    cfg -> scass_io_wr_char(clk -> clk_source_avail     );
 
     return 0;
 }
@@ -242,13 +238,9 @@ static int do_get_clk_info (
 static int do_set_clk_info (
     scass_target_cfg * cfg
 ) {
-    uint32_t    ext_rate = read_uint32(cfg);
-    uint32_t    clk_rate = read_uint32(cfg);
-    
-    scass_clk_src_t src  = cfg -> scass_io_rd_char();
+    uint8_t cfg_num = cfg -> scass_io_rd_char(cfg);
 
-    cfg -> sys_clk.ext_clk_rate = ext_rate;
-    cfg -> sys_clk.sys_set_clk_rate(clk_rate, src, &cfg -> sys_clk);
+    cfg -> sys_set_clk_rate(cfg_num, cfg);
 
     return 0;
 }
@@ -340,7 +332,7 @@ void scass_loop (
                 break;
 
             case SCASS_CMD_GET_CLK_INFO:
-                success = do_get_clk_info(cfg, &cfg -> sys_clk);
+                success = do_get_clk_info(cfg);
                 break;
 
             case SCASS_CMD_SET_SYS_CLK:

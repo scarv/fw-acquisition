@@ -26,7 +26,8 @@
 
 #define SCASS_CLK_SRC_EXTERNAL          0b00000001
 #define SCASS_CLK_SRC_INTERNAL          0b00000010
-#define SCASS_CLK_SRC_PLL               0b00000100
+#define SCASS_CLK_SRC_PLL_EXT           0b00000100
+#define SCASS_CLK_SRC_PLL_INT           0b00001000
 
 #define SCASS_RSP_OKAY            '0'
 #define SCASS_RSP_ERROR           '!'
@@ -73,37 +74,11 @@ struct __scass_target_var {
 typedef struct __scass_target_clk_info scass_target_clk_info;
 struct         __scass_target_clk_info {
     
-    //! Array of possible clock rates in Hertz.
-    uint32_t *clk_rates;
-
-    //! Length of clk_rates.
-    uint8_t   clk_rates_num;
+    //! System Clock rate
+    uint32_t            sys_clk_rate;
     
-    //! The current clock speed in hertz.
-    uint32_t  clk_current;
-    
-    //! If the clock source is external, this is its base rate.
-    uint32_t  ext_clk_rate;
-    
-    //! Current source of the clock.
-    scass_clk_src_t clk_source_current;
-    
-    //! Available clock sources.
-    scass_clk_src_t clk_source_avail;
-    
-    /*!
-    @brief Function pointer targets provide to set the current clock rate.
-    @param in rate   - The new clock frequency in hertz.
-    @param in source - The source of the clock.
-    @param inout clk_cfg - The configuration object for the clock. Updated
-        with the final clock rate when it is set.
-    @returns void
-    */
-    void (*sys_set_clk_rate)(
-        uint32_t                rate    ,
-        scass_clk_src_t         src     ,
-        scass_target_clk_info * clk_cfg
-    );
+    //! System clock source: internal/external/pll
+    scass_clk_src_t     sys_clk_src;
 
 };
 
@@ -148,7 +123,25 @@ struct __scass_target_cfg {
     uint32_t  randomness_refresh_rate;
     
     //! Contains information on possible clock rates for the target.
-    scass_target_clk_info   sys_clk;
+    scass_target_clk_info * clk_cfgs;
+
+    //! Index into the clk_cfgs array, indicating current clock config.
+    uint8_t                 current_clk_cfg;
+    
+    //! Number of clock configurations available.
+    uint8_t                 num_clk_cfgs;
+    
+    /*!
+    @brief Function pointer targets provide to set the current clock rate.
+    @param in new_clk_cfg - index into cfg.clk_cfgs indicating config to set.
+    @param in cfg    - SCASS config object containing new clock config.
+    @details Looks a current_clk_cfg and clk_cfgs of cfg.
+    @returns void
+    */
+    void (*sys_set_clk_rate)(
+        uint8_t             new_clk_cfg,
+        scass_target_cfg *  cfg
+    );
 
     /*!
     @brief Read a single character from the target UART port.

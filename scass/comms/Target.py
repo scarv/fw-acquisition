@@ -334,33 +334,18 @@ class Target(object):
         """
         self.__sendByte(SCASS_CMD_GET_CLK_INFO)
 
-        rates   = []
-        sources = []
+        tr = []
 
-        num_rates = int.from_bytes(self.__recvByte(),byteorder="big")
-        for i in range(0, num_rates):
-            rates.append(self.__recvInt32())
-        
-        # Current clock rate
-        rate    = self.__recvInt32()
-        
-        # External clock rate
-        ext     = self.__recvInt32()
+        num_cfgs = int.from_bytes(self.__recvByte(),byteorder="big")
+        current  = int.from_bytes(self.__recvByte(),byteorder="big")
 
-        # current clock source
-        source  = int.from_bytes(self.__recvByte(),byteorder="big")
+        for i in range(0,num_cfgs):
+            sys_clk_rate = int.from_bytes(self.__recvBytes(4),byteorder="big")
+            sys_clk_src  = int.from_bytes(self.__recvByte()  ,byteorder="big")
+            sys_clk_src  = TargetClkSrc(sys_clk_src)
+            tr.append(TargetClkInfo(sys_clk_rate, sys_clk_src))
 
-        # Valid sources as an 8-bit bitfield.
-        s = int.from_bytes(self.__recvByte(),byteorder="big")
-        for i in range(0,8):
-            if(s & (1<<i)):
-                sources.append(1<<i)
-
-        tr = TargetClkInfo(
-            rates, sources, rate, source, ext
-        )
-
-        return tr
+        return (current,tr)
 
 
     def doSetSysClk(self, ext_clk_rate, desired_rate, desired_src):
