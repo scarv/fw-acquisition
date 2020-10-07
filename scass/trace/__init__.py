@@ -23,8 +23,8 @@ def saveTracesToDisk(filepath, traces):
 
     elif(filepath.endswith(".lz4")):
 
-        with lzf.frame.open(filepath,mode="wb") as lzfh:
-            np.save(file=lzfh, arr=traces)
+        with lz4.frame.open(filepath,mode="wb") as lz4h:
+            np.save(file=lz4h, arr=traces)
 
     elif(filepath.endswith(".npy")):
         
@@ -32,6 +32,7 @@ def saveTracesToDisk(filepath, traces):
 
     else:
         log.error("Unknown file extension: '%s'" % filepath)
+        log.error("Should be one of .gz, .lz4, .npy")
         log.error("Could not save traces to disk.")
         raise Exception("Unknown file extension: '%s'" % filepath)
 
@@ -51,8 +52,8 @@ def loadTracesFromDisk(filepath):
 
     elif(filepath.endswith(".lz4")):
 
-        with lzf.frame.open(filepath,mode="r") as lzfh:
-            data = np.load(lzfh)
+        with lz4.frame.open(filepath,mode="r") as lz4h:
+            data = np.load(lz4h)
 
     elif(filepath.endswith(".npy")):
         

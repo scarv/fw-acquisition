@@ -245,9 +245,73 @@ static int do_set_clk_info (
     return 0;
 }
 
+void __scass_set_panic_handler();
+
+asm (
+".global __scass_set_panic_handler  \n"
+"__scass_set_panic_handler:  \n"
+"    la a0, __scass_panic  \n"
+"    csrw mtvec, a0  \n"
+"    ret  \n"
+"  \n"
+".balign 4  \n"
+".global __scass_panic  \n"
+"__scass_panic:  \n"
+"    j scass_panic  \n"
+);
+
+    
+scass_target_cfg * pcfg;
+
+
+static const char lut []= "0123456789ABCDEF";
+
+//! Print a 32-bit number as hex
+void puthex32(uint32_t w) {
+    for(int i =  3; i >= 0; i --) {
+        pcfg -> scass_io_wr_char(lut[(w >> (8*i + 4)) & 0xF]);
+        pcfg -> scass_io_wr_char(lut[(w >> (8*i    )) & 0xF]);
+    }
+}
+
+//! Trap handler to dump information to the UART on an exception.
+void scass_panic() {
+    uint32_t mepc, mstatus, mtval, mcause, sp, ra;
+
+    asm volatile("mv   %0, sp       " : "=r"(sp     ));
+    asm volatile("mv   %0, ra       " : "=r"(ra     ));
+    asm volatile("csrr %0, mepc     " : "=r"(mepc   ));
+    asm volatile("csrr %0, mstatus  " : "=r"(mstatus));
+    asm volatile("csrr %0, mtval    " : "=r"(mtval  ));
+    asm volatile("csrr %0, mcause   " : "=r"(mcause ));
+    char nl = '\n';
+    pcfg -> scass_io_wr_char(nl);
+    pcfg -> scass_io_wr_char('p');
+    pcfg -> scass_io_wr_char('a');
+    pcfg -> scass_io_wr_char('n');
+    pcfg -> scass_io_wr_char('i');
+    pcfg -> scass_io_wr_char('c');
+    pcfg -> scass_io_wr_char(nl);
+
+    puthex32(mepc   ); pcfg -> scass_io_wr_char(nl);
+    puthex32(mstatus); pcfg -> scass_io_wr_char(nl);
+    puthex32(mtval  ); pcfg -> scass_io_wr_char(nl);
+    puthex32(mcause ); pcfg -> scass_io_wr_char(nl);
+    puthex32(sp     ); pcfg -> scass_io_wr_char(nl);
+    puthex32(ra     ); pcfg -> scass_io_wr_char(nl);
+
+    while(1) {}
+
+    __builtin_unreachable();
+}
+
+
 void scass_loop (
     scass_target_cfg * cfg
 ) {
+    pcfg = cfg;
+
+    __scass_set_panic_handler();
 
     while(1) {
 
@@ -363,12 +427,6 @@ void scass_debug_str(
     scass_target_cfg * cfg, //!< The config to debug with
     char             * str
 ){
-    size_t len = strlen(str);
-
-    cfg -> scass_io_wr_char(SCASS_RSP_DEBUG);
-
-    dump_bytes(cfg, str, len);
-
-    cfg -> scass_io_wr_char('\n');
+    // EMPTY
 }
 

@@ -108,9 +108,6 @@ def main():
     fbits       = loadTracesFromDisk(args.trs_fixed)
     traces      = loadTracesFromDisk(args.trs_trace)
 
-    del gzfh_fixed
-    del gzfh_traces
-
     gc.collect()
 
     fixed_idx   = np.nonzero(fbits >= 1)

@@ -430,7 +430,7 @@ class TTestCapture(object):
                 log.info("Dumping %d input var %s values to %s" % (
                     count, var.name, fp
                 ))
-                saveTracesToDisk(gp, self.tgt_vars_values[var.name])
+                saveTracesToDisk(fp, self.tgt_vars_values[var.name])
 
         if(self.trs_fb_file != None):
             log.info("Dumping fixed/random indicators to %s" % self.trs_fb_file)
