@@ -245,6 +245,7 @@ static int do_set_clk_info (
     return 0;
 }
 
+#ifdef __riscv_xlen
 void __scass_set_panic_handler();
 
 asm (
@@ -259,6 +260,7 @@ asm (
 "__scass_panic:  \n"
 "    j scass_panic  \n"
 );
+#endif
 
     
 scass_target_cfg * pcfg;
@@ -277,13 +279,22 @@ void puthex32(uint32_t w) {
 //! Trap handler to dump information to the UART on an exception.
 void scass_panic() {
     uint32_t mepc, mstatus, mtval, mcause, sp, ra;
-
+    
+#ifdef __riscv_xlen
     asm volatile("mv   %0, sp       " : "=r"(sp     ));
     asm volatile("mv   %0, ra       " : "=r"(ra     ));
     asm volatile("csrr %0, mepc     " : "=r"(mepc   ));
     asm volatile("csrr %0, mstatus  " : "=r"(mstatus));
     asm volatile("csrr %0, mtval    " : "=r"(mtval  ));
     asm volatile("csrr %0, mcause   " : "=r"(mcause ));
+#else
+    mepc = 0;
+    mstatus=0;
+    mtval=0;
+    mcause=0;
+    sp=0;
+    ra=0;
+#endif
     char nl = '\n';
     pcfg -> scass_io_wr_char(nl);
     pcfg -> scass_io_wr_char('p');
@@ -311,7 +322,9 @@ void scass_loop (
 ) {
     pcfg = cfg;
 
+    #ifdef __riscv_xlen
     __scass_set_panic_handler();
+    #endif
 
     while(1) {
 
