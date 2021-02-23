@@ -243,6 +243,10 @@ class TTestCapture(object):
 
         for var in self.tgt_vars:
 
+            # Make sure everything is assigned zeros to start with.
+            var.setFixedValue(bytes(var.size))
+            var.takeFixedValue()
+
             if(var.is_input and (var.is_ttest_variable or var.is_randomisable)):
                 fixed_val = None
 
@@ -254,8 +258,15 @@ class TTestCapture(object):
                 var.setFixedValue(fixed_val)
                 var.takeFixedValue()
 
-            self.target.doSetVarFixedValue(var.vid, var.fixed_value)
-            self.target.doSetVarValue     (var.vid, var.fixed_value)
+            else:
+                fixed_val = self.target.doGetVarFixedValue(var.vid,var.size)
+                var.setFixedValue(fixed_val)
+                var.takeFixedValue()
+            
+            if(not var.is_output):
+                assert(var.fixed_value != None)
+                self.target.doSetVarFixedValue(var.vid, var.fixed_value)
+                self.target.doSetVarValue     (var.vid, var.fixed_value)
 
             log.info("%3s | %20s | %s" % (
                 var.vid ,

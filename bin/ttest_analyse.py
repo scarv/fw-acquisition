@@ -56,7 +56,7 @@ def parse_args():
     parser.add_argument("--trim-start",type=int,default = 0,
         help="Trim this many samples from start of graph.")
     
-    parser.add_argument("--trim-end",type=int,default = 0,
+    parser.add_argument("--trim-end",type=int,default = 1,
         help="Trim this many samples from end of graph.")
 
     parser.add_argument("--abs",action="store_true",
